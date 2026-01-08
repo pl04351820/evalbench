@@ -269,6 +269,6 @@ def breakdown_datasets(total_dataset: list[EvalInputRequest]):
 
 
 def flatten_dataset(dataset: dict[str, list]):
-    if type(dataset) == list:
+    if isinstance(dataset, list):
         return dataset
     return list(chain.from_iterable(dataset.values()))
