@@ -92,3 +92,25 @@ def analyze_result(scores, experiment_config: dict[str, str]):
         "string"
     )
     return df, summary_scores_df
+
+def analyze_gemini_cli_result(scores):
+    """Analyze accuracy result from gemini cli evaluator."""
+    summary_scores = []
+    df = pd.DataFrame.from_dict(scores)
+    if not df.empty and "score" in df.columns:
+        correct_results_count = len(df[df["score"] == 1])
+        total_results_count = len(df)
+        logging.info(
+            "Trajectory Score: \t{correct_results_count}/{total_results_count} = "
+            f"{round(correct_results_count / total_results_count * 100, 2)}%"
+        )
+        summary_scores.append(
+            {
+                "metric_name": "trajectory_score",
+                "metric_score": 1,
+                "correct_results_count": correct_results_count,
+                "total_results_count": total_results_count,
+            }
+        )
+    summary_scores_df = pd.DataFrame.from_dict(summary_scores)
+    return df, summary_scores_df

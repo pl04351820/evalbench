@@ -7,6 +7,7 @@ from reporting import get_reporters
 from util.config import load_yaml_config, config_to_df
 from dataset.dataset import load_json, load_dataset_from_json, flatten_dataset
 from evaluator import get_orchestrator
+from evaluator.geminicliorchestrator import GeminiCliOrchestrator
 import reporting.report as report
 import reporting.analyzer as analyzer
 import logging
@@ -68,9 +69,15 @@ def main(argv: Sequence[str]):
             results_df = report.get_dataframe(results)
             report.quick_summary(results_df)
             scores = load_json(scores_tf)
-            scores_df, summary_scores_df = analyzer.analyze_result(scores, config)
-            summary_scores_df["job_id"] = job_id
-            summary_scores_df["run_time"] = run_time
+            if isinstance(evaluator, GeminiCliOrchestrator):
+                scores_df, summary_scores_df = analyzer.analyze_gemini_cli_result(
+                    scores
+                )
+            else:
+                scores_df, summary_scores_df = analyzer.analyze_result(scores, config)
+            if summary_scores_df is not None and not summary_scores_df.empty:
+                summary_scores_df["job_id"] = job_id
+                summary_scores_df["run_time"] = run_time
         else:
             logging.warning(
                 "There were no matching evals in this run. Returning empty set."
