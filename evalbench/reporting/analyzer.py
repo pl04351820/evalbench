@@ -93,6 +93,7 @@ def analyze_result(scores, experiment_config: dict[str, str]):
     )
     return df, summary_scores_df
 
+
 def analyze_gemini_cli_result(scores):
     """Analyze accuracy result from gemini cli evaluator."""
     summary_scores = []

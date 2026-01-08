@@ -6,6 +6,7 @@ import subprocess
 import os
 import json
 
+
 class CLICommand:
     def __init__(self, cli, prompt, env=None, resume=False, yolo=True):
         self.cli = cli
@@ -13,6 +14,7 @@ class CLICommand:
         self.env = env if env else {}
         self.resume = resume
         self.yolo = yolo
+
 
 class GeminiCliEvaluator:
     def __init__(
@@ -50,7 +52,7 @@ class GeminiCliEvaluator:
                 "GEMINI_CLI_SYSTEM_SETTINGS_PATH": gemini_settings_path,
             }
         )
-        
+
         command = [
             "npx",
             "-y",
@@ -60,14 +62,14 @@ class GeminiCliEvaluator:
             command.append("--resume")
         if cli_cmd.yolo:
             command.append("--yolo")
-        
+
         command.extend([
             "--output-format",
             "json",
             "--prompt",
             cli_cmd.prompt,
         ])
-        
+
         return self.execute_cli_command(
             command,
             env=env,
@@ -88,14 +90,14 @@ class GeminiCliEvaluator:
             for scenario in eval_set.get("scenarios", []):
                 prompt = scenario["starting_prompt"]
                 env = scenario.get("env", {})
-                
+
                 cli_cmd = CLICommand(
                     cli=self.gemini_cli_version,
                     prompt=prompt,
                     env=env,
                 )
                 result = self.run_gemini_cli(cli_cmd=cli_cmd)
-                
+
                 logging.info(f"Gemini CLI exit code: {result.returncode}")
                 logging.info(f"Gemini CLI stdout: {result.stdout}")
                 logging.info(f"Gemini CLI stderr: {result.stderr}")
