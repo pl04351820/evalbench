@@ -4,6 +4,7 @@ import os
 import json
 import logging
 
+
 class CLICommand:
     def __init__(self, cli, prompt, env=None, resume=False, yolo=True):
         self.cli = cli

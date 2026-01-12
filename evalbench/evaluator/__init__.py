@@ -7,7 +7,7 @@ import logging
 
 def get_orchestrator(config, db_configs, setup_config, report_progress=False):
     orchestrator_type = config.get("orchestrator", "oneshot")
-    
+
     if "model_config" in config:
         from util.config import load_yaml_config
         model_config_path = config["model_config"]

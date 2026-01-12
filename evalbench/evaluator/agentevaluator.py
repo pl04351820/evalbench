@@ -14,7 +14,7 @@ class AgentEvaluator:
         config,
     ):
         self.config = config
-        
+
         # Load model config if provided
         model_config = config
         if "model_config" in config and isinstance(config["model_config"], str):
@@ -24,7 +24,7 @@ class AgentEvaluator:
             model_config.update(config)
 
         self.agent_version = model_config.get("gemini_cli_version", config.get("gemini_cli_version"))
-        
+
         generator_type = model_config.get("generator")
         if generator_type == "gemini_cli":
             self.generator = GeminiCliGenerator(model_config)
@@ -109,7 +109,6 @@ class AgentEvaluator:
                 except Exception as e:
                     score = 0
                     explanation = f"An error occurred during scoring: {e}"
-
 
                 eval_outputs.append({
                     "eval_id": scenario["id"],
