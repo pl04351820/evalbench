@@ -45,6 +45,9 @@ def analyze_one_metric(
 
 def analyze_result(scores, experiment_config: dict[str, str]):
     """Analyze accuracy result from dataframe."""
+    if experiment_config.get("orchestrator") == "geminicli":
+        return analyze_gemini_cli_result(scores)
+
     summary_scores = []
     df = pd.DataFrame.from_dict(scores)
     scorers = experiment_config["scorers"]

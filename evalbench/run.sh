@@ -1,5 +1,4 @@
 #!/bin/bash
-EVAL_CONFIG=datasets/gemini-cli-tools/example_run_config.yaml
 
 if [[ -z "${EVAL_CONFIG}" ]];
   then echo "EVAL_CONFIG is required";

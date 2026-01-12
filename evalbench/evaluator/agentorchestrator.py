@@ -5,10 +5,10 @@ import logging
 import tempfile
 import json
 from dataset.evalgeminicliinput import EvalGeminiCliRequest
-from evaluator.geminiclievaluator import GeminiCliEvaluator
+from evaluator.agentevaluator import AgentEvaluator
 
 
-class GeminiCliOrchestrator(Orchestrator):
+class AgentOrchestrator(Orchestrator):
     def __init__(
         self,
         config,
@@ -28,7 +28,7 @@ class GeminiCliOrchestrator(Orchestrator):
 
     def evaluate(self, dataset: list[EvalGeminiCliRequest]):
         logging.info("Starting Gemini CLI evaluation")
-        evaluator = GeminiCliEvaluator(self.config)
+        evaluator = AgentEvaluator(self.config)
         eval_outputs, scoring_results = evaluator.evaluate(
             dataset, self.job_id, self.run_time
         )

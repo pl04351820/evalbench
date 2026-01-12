@@ -4,4 +4,6 @@
 dataset_config: datasets/gemini-cli-tools/gemini-cli.evalset.json
 dataset_format: gemini-cli-format
 setup_directory: datasets/gemini-cli-tools/setup
-gemini_cli_version: "@google/gemini-cli@0.18.4"
+
+# Model Configuration
+model_config: datasets/model_configs/gemini_cli_model.yaml

@@ -3,79 +3,58 @@ import datetime
 from dataset.evalgeminicliinput import EvalGeminiCliRequest
 import logging
 import subprocess
-import os
 import json
+from generators.models.gemini_cli import GeminiCliGenerator, CLICommand
+from util.config import load_yaml_config
 
 
-class CLICommand:
-    def __init__(self, cli, prompt, env=None, resume=False, yolo=True):
-        self.cli = cli
-        self.prompt = prompt
-        self.env = env if env else {}
-        self.resume = resume
-        self.yolo = yolo
 
-
-class GeminiCliEvaluator:
+class AgentEvaluator:
     def __init__(
         self,
         config,
     ):
         self.config = config
-        self.gemini_cli_version = config["gemini_cli_version"]
+        
+        # Load model config if provided
+        model_config = config
+        if "model_config" in config and isinstance(config["model_config"], str):
+             loaded_config = load_yaml_config(config["model_config"])
+             # Merge main config into loaded config, giving precedence to main config
+             model_config = loaded_config.copy()
+             model_config.update(config)
+        
+        self.agent_version = model_config.get("gemini_cli_version", config.get("gemini_cli_version"))
+        
+        generator_type = model_config.get("generator")
+        if generator_type == "gemini_cli":
+            self.generator = GeminiCliGenerator(model_config)
+        else:
+            raise ValueError(f"Unsupported generator type for AgentEvaluator: {generator_type}")
 
-    def execute_cli_command(
-        self, command: list[str], env: dict[str, str] | None = None
-    ) -> subprocess.CompletedProcess:
-        try:
-            result = subprocess.run(
-                command, capture_output=True, text=True, check=False, env=env
-            )
-            return result
-        except FileNotFoundError:
-            return subprocess.CompletedProcess(command, 127, "", f"Error: Command not found: {command[0]}")
-        except Exception as e:
-            return subprocess.CompletedProcess(command, 1, "", f"An unexpected error occurred: {e}")
-
-    def run_gemini_cli(self, cli_cmd: CLICommand):
-        gemini_settings_path = os.path.expanduser("~/.gemini/settings.json")
-        if not os.path.exists(os.path.dirname(gemini_settings_path)):
-            os.makedirs(os.path.dirname(gemini_settings_path))
-        if not os.path.exists(gemini_settings_path):
-            with open(gemini_settings_path, 'w') as f:
-                json.dump({}, f)
-
-        env = os.environ.copy()
-        env.update(cli_cmd.env)
-        env.update(
-            {
-                "GEMINI_CLI_SYSTEM_SETTINGS_PATH": gemini_settings_path,
-            }
-        )
-
-        command = [
-            "npx",
-            "-y",
-            cli_cmd.cli,
-        ]
-        if cli_cmd.resume:
-            command.append("--resume")
-        if cli_cmd.yolo:
-            command.append("--yolo")
-
-        command.extend([
-            "--output-format",
-            "json",
-            "--prompt",
-            cli_cmd.prompt,
-        ])
-
-        return self.execute_cli_command(
-            command,
-            env=env,
-        )
+    def run_gemini_cli(self, cli_cmd: CLICommand) -> subprocess.CompletedProcess:
+        result = self.generator.generate(cli_cmd)
+        if isinstance(result, str) and not result:
+             return subprocess.CompletedProcess(
+                 args=cli_cmd.cli,
+                 returncode=1,
+                 stdout="",
+                 stderr="Error: Generator returned empty response (possibly resource exhausted).",
+             )
+        return result
 
     def evaluate(
+        self,
+        dataset: List[EvalGeminiCliRequest],
+        job_id: str,
+        run_time: datetime.datetime,
+    ):
+        if isinstance(self.generator, GeminiCliGenerator):
+            return self._evaluate_gemini_cli(dataset, job_id, run_time)
+        else:
+             raise NotImplementedError("This evaluator currently only supports GeminiCliGenerator")
+
+    def _evaluate_gemini_cli(
         self,
         dataset: List[EvalGeminiCliRequest],
         job_id: str,
@@ -92,7 +71,7 @@ class GeminiCliEvaluator:
                 env = scenario.get("env", {})
 
                 cli_cmd = CLICommand(
-                    cli=self.gemini_cli_version,
+                    cli=self.agent_version,
                     prompt=prompt,
                     env=env,
                 )
@@ -131,6 +110,7 @@ class GeminiCliEvaluator:
                 except Exception as e:
                     score = 0
                     explanation = f"An error occurred during scoring: {e}"
+
 
                 eval_outputs.append({
                     "eval_id": scenario["id"],
