@@ -12,6 +12,7 @@ class CLICommand:
         self.resume = resume
         self.yolo = yolo
 
+
 class GeminiCliGenerator(QueryGenerator):
     """Generator queries using Gemini CLI."""
 
@@ -20,9 +21,9 @@ class GeminiCliGenerator(QueryGenerator):
         self.name = "gemini_cli"
         self.gemini_cli_version = querygenerator_config.get("gemini_cli_version", "gemini-cli")
 
-    def generate_internal(self, cli_cmd: CLICommand):    
+    def generate_internal(self, cli_cmd: CLICommand):
         if not isinstance(cli_cmd, CLICommand):
-             cli_cmd = CLICommand(self.gemini_cli_version, str(cli_cmd))
+            cli_cmd = CLICommand(self.gemini_cli_version, str(cli_cmd))
 
         return self._run_gemini_cli(cli_cmd)
 

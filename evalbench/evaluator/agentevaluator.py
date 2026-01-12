@@ -8,7 +8,6 @@ from generators.models.gemini_cli import GeminiCliGenerator, CLICommand
 from util.config import load_yaml_config
 
 
-
 class AgentEvaluator:
     def __init__(
         self,
@@ -19,11 +18,11 @@ class AgentEvaluator:
         # Load model config if provided
         model_config = config
         if "model_config" in config and isinstance(config["model_config"], str):
-             loaded_config = load_yaml_config(config["model_config"])
-             # Merge main config into loaded config, giving precedence to main config
-             model_config = loaded_config.copy()
-             model_config.update(config)
-        
+            loaded_config = load_yaml_config(config["model_config"])
+            # Merge main config into loaded config, giving precedence to main config
+            model_config = loaded_config.copy()
+            model_config.update(config)
+
         self.agent_version = model_config.get("gemini_cli_version", config.get("gemini_cli_version"))
         
         generator_type = model_config.get("generator")
@@ -35,12 +34,12 @@ class AgentEvaluator:
     def run_gemini_cli(self, cli_cmd: CLICommand) -> subprocess.CompletedProcess:
         result = self.generator.generate(cli_cmd)
         if isinstance(result, str) and not result:
-             return subprocess.CompletedProcess(
-                 args=cli_cmd.cli,
-                 returncode=1,
-                 stdout="",
-                 stderr="Error: Generator returned empty response (possibly resource exhausted).",
-             )
+            return subprocess.CompletedProcess(
+                args=cli_cmd.cli,
+                returncode=1,
+                stdout="",
+                stderr="Error: Generator returned empty response (possibly resource exhausted).",
+            )
         return result
 
     def evaluate(
@@ -52,7 +51,7 @@ class AgentEvaluator:
         if isinstance(self.generator, GeminiCliGenerator):
             return self._evaluate_gemini_cli(dataset, job_id, run_time)
         else:
-             raise NotImplementedError("This evaluator currently only supports GeminiCliGenerator")
+            raise NotImplementedError("This evaluator currently only supports GeminiCliGenerator")
 
     def _evaluate_gemini_cli(
         self,
