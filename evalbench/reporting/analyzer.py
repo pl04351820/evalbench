@@ -43,7 +43,6 @@ def analyze_one_metric(
     }
 
 
-
 def analyze_result(scores, experiment_config: dict[str, str]):
     """Analyze accuracy result from dataframe."""
     summary_scores = []
@@ -71,7 +70,7 @@ def analyze_result(scores, experiment_config: dict[str, str]):
 
     summary_scores.append(summary)
     summary_scores_df = pd.DataFrame.from_dict(summary_scores)
-    
+
     existing_cols = [
         "generated_error",
         "comparator",
@@ -82,7 +81,7 @@ def analyze_result(scores, experiment_config: dict[str, str]):
     ]
     # Filter to only existing columns before casting
     existing_cols = [col for col in existing_cols if col in df.columns]
-    
+
     if existing_cols:
         df[existing_cols] = df[existing_cols].astype("string")
 

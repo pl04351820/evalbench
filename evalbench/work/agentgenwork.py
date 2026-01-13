@@ -9,6 +9,7 @@ from work.work import Work
 from generators.models.gemini_cli import GeminiCliGenerator, CLICommand
 from scorers.trajectorymatcher import TrajectoryMatcher
 
+
 class AgentGenWork(Work):
     """Work class for running agent generation and scoring."""
 
@@ -41,9 +42,9 @@ class AgentGenWork(Work):
         
         # Initialize results structure in eval_result if not present
         if not hasattr(eval_result, "agent_results"):
-             eval_result.agent_results = []
+            eval_result.agent_results = []
         if not hasattr(eval_result, "scoring_results"):
-             eval_result.scoring_results = []
+            eval_result.scoring_results = []
 
         try:
             eval_set = json.loads(eval_result.payload)
@@ -56,7 +57,6 @@ class AgentGenWork(Work):
                     prompt=prompt,
                     env=env,
                 )
-                
                 result = self._run_gemini_cli(cli_cmd)
 
                 logging.info(f"Gemini CLI exit code: {result.returncode}")
@@ -88,10 +88,8 @@ class AgentGenWork(Work):
                     "database": self.metadata.get("database", "unknown"),
                     "dialects": self.metadata.get("dialects", []),
                 }
-                
-                eval_outputs.append(eval_output_data)
                 scoring_results.append(scoring_result_data)
-                
+
             # Update the eval_result with results
             eval_result.agent_results.extend(eval_outputs)
             eval_result.scoring_results.extend(scoring_results)
@@ -99,7 +97,7 @@ class AgentGenWork(Work):
         except Exception as e:
             logging.error(f"Error processing item: {e}")
             # Potentially record error in eval_result
-            
+
         return eval_result
 
     def _run_gemini_cli(self, cli_cmd: CLICommand) -> subprocess.CompletedProcess:
@@ -151,5 +149,5 @@ class AgentGenWork(Work):
         except Exception as e:
             score = 0
             explanation = f"An error occurred during scoring: {e}"
-            
+
         return score, explanation

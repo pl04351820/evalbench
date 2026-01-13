@@ -73,11 +73,10 @@ class AgentEvaluator:
 
         for future in concurrent.futures.as_completed(self.agentrunner.futures):
             item = future.result()
-            
+
             if hasattr(item, "agent_results"):
                 eval_outputs.extend(item.agent_results)
             if hasattr(item, "scoring_results"):
                 scoring_results.extend(item.scoring_results)
 
         return eval_outputs, scoring_results
-
