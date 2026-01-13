@@ -32,7 +32,7 @@ class AgentEvaluator:
             self.generator = GeminiCliGenerator(model_config)
         else:
             raise ValueError(f"Unsupported generator type for AgentEvaluator: {generator_type}")
-            
+
         runner_config = self.config.get("runners", {})
         self.agent_runners = runner_config.get("agent_runners", 10)
         self.agentrunner = mprunner.MPRunner(self.agent_runners)

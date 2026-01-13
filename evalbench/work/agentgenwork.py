@@ -39,7 +39,7 @@ class AgentGenWork(Work):
         eval_result = self.eval_result
         eval_outputs = []
         scoring_results = []
-        
+
         # Initialize results structure in eval_result if not present
         if not hasattr(eval_result, "agent_results"):
             eval_result.agent_results = []

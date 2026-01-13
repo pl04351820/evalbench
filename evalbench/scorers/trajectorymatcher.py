@@ -44,13 +44,13 @@ class TrajectoryMatcher(comparator.Comparator):
             Tuple (score, explanation)
         """
         if generated_error:
-             return 0.0, f"Generation error: {generated_error}"
+            return 0.0, f"Generation error: {generated_error}"
 
         expected = golden_execution_result or []
         actual = generated_execution_result or []
 
         if not isinstance(expected, list) or not isinstance(actual, list):
-             return 0.0, "Trajectory data must be lists."
+            return 0.0, "Trajectory data must be lists."
 
         if self.ignore_order:
             # Set comparison
@@ -64,13 +64,13 @@ class TrajectoryMatcher(comparator.Comparator):
                 explanation = "Tool sets match exactly." if match else f"Set mismatch. Expected: {set(expected)}, Actual: {set(actual)}"
         else:
             # Ordered comparison
-             if self.allow_extras:
+            if self.allow_extras:
                 match = False
                 explanation = "Not implemented."
-             
-             # Strict match (default)
-             match = expected == actual
-             explanation = "Trajectories match exactly." if match else f"Trajectory mismatch. Expected: {expected}, Actual: {actual}"
+
+            # Strict match (default)
+            match = expected == actual
+            explanation = "Trajectories match exactly." if match else f"Trajectory mismatch. Expected: {expected}, Actual: {actual}"
 
         score = 100.0 if match else 0.0
         return score, explanation
