@@ -7,10 +7,11 @@ It compares the expected tool usage trajectory with the actual executed tools.
 from typing import Tuple, Any
 from scorers import comparator
 
+
 class TrajectoryMatcher(comparator.Comparator):
     """
     TrajectoryMatcher class implements the Comparator base class for checking tool execution trajectories.
-    
+
     It checks if the sequence of executed tools matches the expected trajectory.
     """
 
@@ -35,11 +36,11 @@ class TrajectoryMatcher(comparator.Comparator):
     ) -> Tuple[float, str]:
         """
         Compares expected trajectory (golden) with actual executed tools (generated).
-        
+
         Args:
             golden_execution_result: List of expected tool names (strings).
             generated_execution_result: List of actually executed tool names (strings).
-            
+
         Returns:
             Tuple (score, explanation)
         """
