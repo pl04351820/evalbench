@@ -69,9 +69,8 @@ def main(argv: Sequence[str]):
             report.quick_summary(results_df)
             scores = load_json(scores_tf)
             scores_df, summary_scores_df = analyzer.analyze_result(scores, config)
-            if summary_scores_df is not None and not summary_scores_df.empty:
-                summary_scores_df["job_id"] = job_id
-                summary_scores_df["run_time"] = run_time
+            summary_scores_df["job_id"] = job_id
+            summary_scores_df["run_time"] = run_time
         else:
             logging.warning(
                 "There were no matching evals in this run. Returning empty set."

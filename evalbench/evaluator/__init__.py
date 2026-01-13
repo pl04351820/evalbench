@@ -7,7 +7,6 @@ import logging
 
 def get_orchestrator(config, db_configs, setup_config, report_progress=False):
     orchestrator_type = config.get("orchestrator", "oneshot")
-
     logging.info(f"Orchestrator Type: {orchestrator_type}")
     if orchestrator_type == "oneshot":
         return OneShotOrchestrator(config, db_configs, setup_config, report_progress)

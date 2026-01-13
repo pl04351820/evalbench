@@ -43,11 +43,9 @@ def analyze_one_metric(
     }
 
 
+
 def analyze_result(scores, experiment_config: dict[str, str]):
     """Analyze accuracy result from dataframe."""
-    if experiment_config.get("orchestrator") == "geminicli":
-        return analyze_gemini_cli_result(scores)
-
     summary_scores = []
     df = pd.DataFrame.from_dict(scores)
     scorers = experiment_config["scorers"]
@@ -73,48 +71,19 @@ def analyze_result(scores, experiment_config: dict[str, str]):
 
     summary_scores.append(summary)
     summary_scores_df = pd.DataFrame.from_dict(summary_scores)
-    df[
-        [
-            "generated_error",
-            "comparator",
-            "comparison_error",
-            "generated_sql",
-            "job_id",
-            "id",
-        ]
-    ] = df[
-        [
-            "generated_error",
-            "comparator",
-            "comparison_error",
-            "generated_sql",
-            "job_id",
-            "id",
-        ]
-    ].astype(
-        "string"
-    )
-    return df, summary_scores_df
+    
+    existing_cols = [
+        "generated_error",
+        "comparator",
+        "comparison_error",
+        "generated_sql",
+        "job_id",
+        "id",
+    ]
+    # Filter to only existing columns before casting
+    existing_cols = [col for col in existing_cols if col in df.columns]
+    
+    if existing_cols:
+        df[existing_cols] = df[existing_cols].astype("string")
 
-
-def analyze_gemini_cli_result(scores):
-    """Analyze accuracy result from gemini cli evaluator."""
-    summary_scores = []
-    df = pd.DataFrame.from_dict(scores)
-    if not df.empty and "score" in df.columns:
-        correct_results_count = len(df[df["score"] == 1])
-        total_results_count = len(df)
-        logging.info(
-            "Trajectory Score: \t{correct_results_count}/{total_results_count} = "
-            f"{round(correct_results_count / total_results_count * 100, 2)}%"
-        )
-        summary_scores.append(
-            {
-                "metric_name": "trajectory_score",
-                "metric_score": 1,
-                "correct_results_count": correct_results_count,
-                "total_results_count": total_results_count,
-            }
-        )
-    summary_scores_df = pd.DataFrame.from_dict(summary_scores)
     return df, summary_scores_df

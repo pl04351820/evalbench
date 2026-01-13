@@ -1,11 +1,13 @@
 from typing import Any, List
 import datetime
-from dataset.evalgeminicliinput import EvalGeminiCliRequest
+import concurrent.futures
 import logging
-import subprocess
-import json
-from generators.models.gemini_cli import GeminiCliGenerator, CLICommand
+
+from dataset.evalgeminicliinput import EvalGeminiCliRequest
+from generators.models.gemini_cli import GeminiCliGenerator
 from util.config import load_yaml_config
+from mp import mprunner
+from work.agentgenwork import AgentGenWork
 
 
 class AgentEvaluator:
@@ -30,17 +32,10 @@ class AgentEvaluator:
             self.generator = GeminiCliGenerator(model_config)
         else:
             raise ValueError(f"Unsupported generator type for AgentEvaluator: {generator_type}")
-
-    def run_gemini_cli(self, cli_cmd: CLICommand) -> subprocess.CompletedProcess:
-        result = self.generator.generate(cli_cmd)
-        if isinstance(result, str) and not result:
-            return subprocess.CompletedProcess(
-                args=cli_cmd.cli,
-                returncode=1,
-                stdout="",
-                stderr="Error: Generator returned empty response (possibly resource exhausted).",
-            )
-        return result
+            
+        runner_config = self.config.get("runners", {})
+        self.agent_runners = runner_config.get("agent_runners", 10)
+        self.agentrunner = mprunner.MPRunner(self.agent_runners)
 
     def evaluate(
         self,
@@ -63,67 +58,26 @@ class AgentEvaluator:
         scoring_results: List[Any] = []
         logging.info("Running Gemini CLI evaluation")
 
+        self.agentrunner.futures.clear()
+
+        # Extract generic metadata
+        metadata = {
+            "dialects": self.config.get("dialects", []),
+            "database": self.config.get("database", "unknown"),
+            "scorers": self.config.get("scorers", {}),
+        }
+
         for item in dataset:
-            eval_set = json.loads(item.payload)
-            for scenario in eval_set.get("scenarios", []):
-                prompt = scenario["starting_prompt"]
-                env = scenario.get("env", {})
+            work = AgentGenWork(self.generator, self.agent_version, item, job_id=job_id, metadata=metadata)
+            self.agentrunner.execute_work(work)
 
-                cli_cmd = CLICommand(
-                    cli=self.agent_version,
-                    prompt=prompt,
-                    env=env,
-                )
-                result = self.run_gemini_cli(cli_cmd=cli_cmd)
-
-                logging.info(f"Gemini CLI exit code: {result.returncode}")
-                logging.info(f"Gemini CLI stdout: {result.stdout}")
-                logging.info(f"Gemini CLI stderr: {result.stderr}")
-
-                score = 0
-                explanation = ""
-                try:
-                    output_json = json.loads(result.stdout)
-                    executed_tools = []
-                    if (
-                        "stats" in output_json
-                        and "tools" in output_json["stats"]
-                        and "byName" in output_json["stats"]["tools"]
-                    ):
-                        executed_tools = list(
-                            output_json["stats"]["tools"]["byName"].keys()
-                        )
-
-                    expected_trajectory = scenario.get("expected_trajectory", [])
-
-                    if set(expected_trajectory).issubset(set(executed_tools)):
-                        score = 1
-                        explanation = "All expected tools were called."
-                    else:
-                        score = 0
-                        explanation = f"Not all expected tools were called. Expected: {expected_trajectory}, Found: {executed_tools}"
-
-                except json.JSONDecodeError:
-                    score = 0
-                    explanation = "Failed to parse Gemini CLI output as JSON."
-                except Exception as e:
-                    score = 0
-                    explanation = f"An error occurred during scoring: {e}"
-
-                eval_outputs.append({
-                    "eval_id": scenario["id"],
-                    "stdout": result.stdout,
-                    "stderr": result.stderr,
-                    "returncode": result.returncode,
-                    "prompt_generator_error": None,
-                    "generated_error": None,
-                    "sql_generator_error": None,
-                    "golden_error": None,
-                })
-                scoring_results.append({
-                    "eval_id": scenario["id"],
-                    "score": score,
-                    "explanation": explanation
-                })
+        for future in concurrent.futures.as_completed(self.agentrunner.futures):
+            item = future.result()
+            
+            if hasattr(item, "agent_results"):
+                eval_outputs.extend(item.agent_results)
+            if hasattr(item, "scoring_results"):
+                scoring_results.extend(item.scoring_results)
 
         return eval_outputs, scoring_results
+
