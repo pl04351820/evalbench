@@ -42,7 +42,6 @@ class AgentGenWork(Work):
         eval_outputs = []
         scoring_results = []
 
-        # Initialize results structure in eval_result if not present
         if not hasattr(eval_result, "agent_results"):
             eval_result.agent_results = []
         if not hasattr(eval_result, "scoring_results"):
@@ -67,15 +66,18 @@ class AgentGenWork(Work):
                         env=env,
                         resume=(turn > 0)
                     )
-                    logging.info(f"Turn {turn + 1}/{max_turns} - Prompt: {current_prompt}")
+                    logging.info(
+                        f"Turn {turn + 1}/{max_turns} - Prompt: {current_prompt}")
                     result = self._run_gemini_cli(cli_cmd)
                     last_result = result
 
-                    logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI exit code: {result.returncode}")
-                    logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI stdout: {result.stdout}")
-                    logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI stderr: {result.stderr}")
+                    logging.info(
+                        f"Turn {turn + 1}/{max_turns} - Gemini CLI exit code: {result.returncode}")
+                    logging.info(
+                        f"Turn {turn + 1}/{max_turns} - Gemini CLI stdout: {result.stdout}")
+                    logging.info(
+                        f"Turn {turn + 1}/{max_turns} - Gemini CLI stderr: {result.stderr}")
 
-                    # Extract tools from this turn
                     try:
                         output_json = json.loads(result.stdout)
                         if (
@@ -87,7 +89,7 @@ class AgentGenWork(Work):
                                 output_json["stats"]["tools"]["byName"].keys()
                             ))
                     except json.JSONDecodeError:
-                        pass  # Handle error later or just ignore tool extraction failure for intermediate turns
+                        pass
 
                     conversation_history.append({
                         "user": current_prompt,
@@ -102,14 +104,15 @@ class AgentGenWork(Work):
                                 result.stdout
                             )
                             if "TERMINATE" in next_response:
-                                logging.info("Simulated user terminated conversation.")
+                                logging.info(
+                                    "Simulated user terminated conversation.")
                                 break
                             current_prompt = next_response
                         else:
                             break
 
-
-                score, explanation = self._score_result(last_result, scenario, accumulated_tools)
+                score, explanation = self._score_result(
+                    last_result, scenario, accumulated_tools)
 
                 eval_output_data = {
                     "eval_id": scenario["id"],
@@ -145,7 +148,6 @@ class AgentGenWork(Work):
 
         except Exception as e:
             logging.error(f"Error processing item: {e}")
-            # Potentially record error in eval_result
 
         return eval_result
 
@@ -180,7 +182,8 @@ class AgentGenWork(Work):
 
             expected_trajectory = scenario.get("expected_trajectory", [])
 
-            scorer_config = self.metadata.get("scorers", {}).get("trajectory_matcher", {})
+            scorer_config = self.metadata.get(
+                "scorers", {}).get("trajectory_matcher", {})
             matcher = TrajectoryMatcher(scorer_config)
             score, explanation = matcher.compare(
                 nl_prompt=scenario["starting_prompt"],
