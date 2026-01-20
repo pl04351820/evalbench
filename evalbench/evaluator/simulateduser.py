@@ -3,25 +3,26 @@ import generators.prompts as prompts
 import threading
 import logging
 
+
 class SimulatedUser:
     def __init__(self, config, global_models=None):
         self.config = config
-        
+
         if global_models is None:
             global_models = {
-                "lock": threading.Lock(), 
+                "lock": threading.Lock(),
                 "registered_models": {}
             }
-            
+
         # Expect 'simulated_user_model_config' path in config
         model_config_path = config.get("simulated_user_model_config")
-        
+
         self.prompt_generator = prompts.get_generator(
-            None, 
-            {"prompt_generator": "SimulatedUserPromptGenerator"}, 
+            None,
+            {"prompt_generator": "SimulatedUserPromptGenerator"},
             "SimulatedUserPromptGenerator"
         )
-        
+
         self.model_generator = None
         if model_config_path:
             try:
@@ -43,11 +44,11 @@ class SimulatedUser:
             "history": history,
             "last_agent_reply": last_agent_reply
         }
-        
+
         # Generate prompt
         self.prompt_generator.generate(payload)
         prompt = payload["prompt"]
-        
+
         # Call model
         response = self.model_generator.generate(prompt)
         return response

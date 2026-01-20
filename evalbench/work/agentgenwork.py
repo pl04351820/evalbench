@@ -56,7 +56,7 @@ class AgentGenWork(Work):
                 max_turns = scenario.get("max_turns", 1)
                 conversation_plan = scenario.get("conversation_plan", "")
                 conversation_history = []
-                
+
                 accumulated_tools = []
                 last_result = None
 
@@ -83,12 +83,12 @@ class AgentGenWork(Work):
                             and "tools" in output_json["stats"]
                             and "byName" in output_json["stats"]["tools"]
                         ):
-                             accumulated_tools.extend(list(
+                            accumulated_tools.extend(list(
                                 output_json["stats"]["tools"]["byName"].keys()
                             ))
                     except json.JSONDecodeError:
-                        pass # Handle error later or just ignore tool extraction failure for intermediate turns
-                    
+                        pass  # Handle error later or just ignore tool extraction failure for intermediate turns
+
                     conversation_history.append({
                         "user": current_prompt,
                         "agent": result.stdout
@@ -97,8 +97,8 @@ class AgentGenWork(Work):
                     if turn < max_turns - 1:
                         if self.simulated_user:
                             next_response = self.simulated_user.get_next_response(
-                                conversation_plan, 
-                                conversation_history, 
+                                conversation_plan,
+                                conversation_history,
                                 result.stdout
                             )
                             if "TERMINATE" in next_response:
