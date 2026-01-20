@@ -19,13 +19,15 @@ class AgentGenWork(Work):
         agent_version: str,
         eval_result: Any,
         job_id: str = "",
-        metadata: dict = None
+        metadata: dict = None,
+        simulated_user: Any = None
     ):
         self.generator = generator
         self.agent_version = agent_version
         self.eval_result = eval_result
         self.job_id = job_id
         self.metadata = metadata or {}
+        self.simulated_user = simulated_user
 
     def run(self, work_config: Any = None) -> Any:
         """Runs the agent generation and scoring work.
@@ -49,32 +51,78 @@ class AgentGenWork(Work):
         try:
             eval_set = json.loads(eval_result.payload)
             for scenario in eval_set.get("scenarios", []):
-                prompt = scenario["starting_prompt"]
+                current_prompt = scenario["starting_prompt"]
                 env = scenario.get("env", {})
+                max_turns = scenario.get("max_turns", 1)
+                conversation_plan = scenario.get("conversation_plan", "")
+                conversation_history = []
+                
+                accumulated_tools = []
+                last_result = None
 
-                cli_cmd = CLICommand(
-                    cli=self.agent_version,
-                    prompt=prompt,
-                    env=env,
-                )
-                result = self._run_gemini_cli(cli_cmd)
+                for turn in range(max_turns):
+                    cli_cmd = CLICommand(
+                        cli=self.agent_version,
+                        prompt=current_prompt,
+                        env=env,
+                        resume=(turn > 0)
+                    )
+                    logging.info(f"Turn {turn + 1}/{max_turns} - Prompt: {current_prompt}")
+                    result = self._run_gemini_cli(cli_cmd)
+                    last_result = result
 
-                logging.info(f"Gemini CLI exit code: {result.returncode}")
-                logging.info(f"Gemini CLI stdout: {result.stdout}")
-                logging.info(f"Gemini CLI stderr: {result.stderr}")
+                    logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI exit code: {result.returncode}")
+                    logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI stdout: {result.stdout}")
+                    logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI stderr: {result.stderr}")
 
-                score, explanation = self._score_result(result, scenario)
+                    # Extract tools from this turn
+                    try:
+                        output_json = json.loads(result.stdout)
+                        if (
+                            "stats" in output_json
+                            and "tools" in output_json["stats"]
+                            and "byName" in output_json["stats"]["tools"]
+                        ):
+                             accumulated_tools.extend(list(
+                                output_json["stats"]["tools"]["byName"].keys()
+                            ))
+                    except json.JSONDecodeError:
+                        pass # Handle error later or just ignore tool extraction failure for intermediate turns
+                    
+                    conversation_history.append({
+                        "user": current_prompt,
+                        "agent": result.stdout
+                    })
+
+                    if turn < max_turns - 1:
+                        if self.simulated_user:
+                            next_response = self.simulated_user.get_next_response(
+                                conversation_plan, 
+                                conversation_history, 
+                                result.stdout
+                            )
+                            if "TERMINATE" in next_response:
+                                logging.info("Simulated user terminated conversation.")
+                                break
+                            current_prompt = next_response
+                        else:
+                            break
+
+
+                score, explanation = self._score_result(last_result, scenario, accumulated_tools)
 
                 eval_output_data = {
                     "eval_id": scenario["id"],
-                    "stdout": result.stdout,
-                    "stderr": result.stderr,
-                    "returncode": result.returncode,
+                    "stdout": last_result.stdout,
+                    "stderr": last_result.stderr,
+                    "returncode": last_result.returncode,
                     "prompt_generator_error": None,
                     "generated_error": None,
                     "sql_generator_error": None,
                     "golden_error": None,
                     "generated_sql": "skipped",
+                    "prompt": scenario["starting_prompt"],
+                    "conversation_history": json.dumps(conversation_history, indent=2),
                 }
                 scoring_result_data = {
                     "id": scenario["id"],
@@ -89,6 +137,7 @@ class AgentGenWork(Work):
                     "dialects": self.metadata.get("dialects", []),
                 }
                 scoring_results.append(scoring_result_data)
+                eval_outputs.append(eval_output_data)
 
             # Update the eval_result with results
             eval_result.agent_results.extend(eval_outputs)
@@ -111,20 +160,23 @@ class AgentGenWork(Work):
             )
         return result
 
-    def _score_result(self, result: subprocess.CompletedProcess, scenario: dict) -> tuple[int, str]:
+    def _score_result(self, result: subprocess.CompletedProcess, scenario: dict, accumulated_tools: List[str] = None) -> tuple[int, str]:
         score = 0
         explanation = ""
         try:
-            output_json = json.loads(result.stdout)
             executed_tools = []
-            if (
-                "stats" in output_json
-                and "tools" in output_json["stats"]
-                and "byName" in output_json["stats"]["tools"]
-            ):
-                executed_tools = list(
-                    output_json["stats"]["tools"]["byName"].keys()
-                )
+            if accumulated_tools is not None:
+                executed_tools = accumulated_tools
+            else:
+                output_json = json.loads(result.stdout)
+                if (
+                    "stats" in output_json
+                    and "tools" in output_json["stats"]
+                    and "byName" in output_json["stats"]["tools"]
+                ):
+                    executed_tools = list(
+                        output_json["stats"]["tools"]["byName"].keys()
+                    )
 
             expected_trajectory = scenario.get("expected_trajectory", [])
 
