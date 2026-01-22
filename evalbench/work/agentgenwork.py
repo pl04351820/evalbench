@@ -65,7 +65,7 @@ class AgentGenWork(Work):
 
         for turn in range(max_turns):
             logging.info(f"Turn {turn + 1}/{max_turns} - Prompt: {current_prompt}")
-            
+
             if isinstance(self.generator, GeminiCliGenerator):
                 cli_cmd = self.generator.create_command(
                     cli=self.agent_version,
@@ -76,14 +76,14 @@ class AgentGenWork(Work):
                 result = self.generator.safe_generate(cli_cmd)
             else:
                 result = self.generator.generate(current_prompt)
-            
+
             last_result = result
 
             self._log_cli_result(turn, max_turns, result)
 
             tools = []
             if isinstance(self.generator, GeminiCliGenerator):
-                 tools = self.generator.extract_tools(result.stdout)
+                tools = self.generator.extract_tools(result.stdout)
             accumulated_tools.extend(tools)
 
             conversation_history.append({
@@ -107,10 +107,10 @@ class AgentGenWork(Work):
 
         if last_result:
             self._finalize_scenario(
-                scenario, 
-                last_result, 
-                conversation_history, 
-                accumulated_tools, 
+                scenario,
+                last_result,
+                conversation_history,
+                accumulated_tools,
                 eval_result
             )
 

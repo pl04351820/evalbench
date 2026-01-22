@@ -59,7 +59,7 @@ class AgentScoreWork(Work):
 
             metadata = self.eval_output.get("metadata", {})
             scorer_config = metadata.get("scorers", {}).get("trajectory_matcher", {})
-            
+
             matcher = TrajectoryMatcher(scorer_config)
             score, explanation = matcher.compare(
                 nl_prompt=starting_prompt,
