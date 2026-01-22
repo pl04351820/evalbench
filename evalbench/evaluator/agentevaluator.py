@@ -37,7 +37,7 @@ class AgentEvaluator:
         runner_config = self.config.get("runners", {})
         self.agent_runners = runner_config.get("agent_runners", 10)
         self.agentrunner = mprunner.MPRunner(self.agent_runners)
-        self.simulated_user = SimulatedUser(self.config)
+
 
     def evaluate(
         self,
@@ -70,7 +70,8 @@ class AgentEvaluator:
         }
 
         for item in dataset:
-            work = AgentGenWork(self.generator, self.agent_version, item, job_id=job_id, metadata=metadata, simulated_user=self.simulated_user)
+            simulated_user = SimulatedUser(self.config)
+            work = AgentGenWork(self.generator, self.agent_version, item, job_id=job_id, metadata=metadata, simulated_user=simulated_user)
             self.agentrunner.execute_work(work)
 
         for future in concurrent.futures.as_completed(self.agentrunner.futures):

@@ -5,14 +5,13 @@ import logging
 
 
 class SimulatedUser:
-    def __init__(self, config, global_models=None):
+    def __init__(self, config):
         self.config = config
 
-        if global_models is None:
-            global_models = {
-                "lock": threading.Lock(),
-                "registered_models": {}
-            }
+        global_models = {
+            "lock": threading.Lock(),
+            "registered_models": {}
+        }
 
         # Expect 'simulated_user_model_config' path in config
         model_config_path = config.get("simulated_user_model_config")
