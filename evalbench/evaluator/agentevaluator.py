@@ -38,7 +38,6 @@ class AgentEvaluator:
         self.agent_runners = runner_config.get("agent_runners", 10)
         self.agentrunner = mprunner.MPRunner(self.agent_runners)
 
-
     def evaluate(
         self,
         dataset: List[EvalGeminiCliRequest],
