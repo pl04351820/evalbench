@@ -32,7 +32,7 @@ class AgentScoreWork(Work):
         """
         scenario = self.eval_output.get("scenario", {})
         metadata = self.eval_output.get("metadata", {})
-        
+
         scoring_item = {
             "id": self.eval_output.get("eval_id"),
             "nl_prompt": scenario.get("starting_prompt", ""),
