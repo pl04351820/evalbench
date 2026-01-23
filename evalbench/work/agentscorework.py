@@ -1,10 +1,9 @@
 """AgentScoreWork class."""
 
-from typing import Any, List, Dict, Tuple
-import logging
-
+from typing import Any
 from work.work import Work
-from scorers.trajectorymatcher import TrajectoryMatcher
+from scorers import score as scorer
+from dataset.evaloutput import EvalOutput
 
 
 class AgentScoreWork(Work):
@@ -31,52 +30,31 @@ class AgentScoreWork(Work):
         Returns:
             The scoring result dictionary.
         """
-        score, explanation = self._score_result()
-
-        scoring_result_data = {
+        scenario = self.eval_output.get("scenario", {})
+        metadata = self.eval_output.get("metadata", {})
+        
+        scoring_item = {
             "id": self.eval_output.get("eval_id"),
-            "eval_id": self.eval_output.get("eval_id"),
-            "score": score,
-            "explanation": explanation,
-            "comparator": "trajectory_matcher",
+            "nl_prompt": scenario.get("starting_prompt", ""),
+            "golden_sql": "",
+            "query_type": "",
+            "golden_result": scenario.get("expected_trajectory", []),
+            "golden_eval_results": "",
+            "golden_error": "",
             "generated_sql": "skipped",
+            "generated_result": self.eval_output.get("accumulated_tools", []),
+            "eval_results": "",
             "generated_error": None,
+            "dialects": metadata.get("dialects", []),
+            "database": metadata.get("database", "unknown"),
             "job_id": self.eval_output.get("job_id"),
-            "database": self.eval_output.get("metadata", {}).get("database", "unknown"),
-            "dialects": self.eval_output.get("metadata", {}).get("dialects", []),
         }
 
-        self.scoring_results.append(scoring_result_data)
+        scorer.compare(
+            eval_output_item=scoring_item,
+            experiment_config=self.config,
+            scoring_results=self.scoring_results,
+            global_models=self.global_models
+        )
+
         return self.eval_output
-
-    def _score_result(self) -> Tuple[int, str]:
-        score = 0
-        explanation = ""
-        try:
-            executed_tools = self.eval_output.get("accumulated_tools", [])
-            expected_trajectory = self.eval_output.get("scenario", {}).get("expected_trajectory", [])
-            starting_prompt = self.eval_output.get("scenario", {}).get("starting_prompt", "")
-
-            metadata = self.eval_output.get("metadata", {})
-            scorer_config = metadata.get("scorers", {}).get("trajectory_matcher", {})
-
-            matcher = TrajectoryMatcher(scorer_config)
-            score, explanation = matcher.compare(
-                nl_prompt=starting_prompt,
-                golden_query="",
-                query_type="",
-                golden_execution_result=expected_trajectory,
-                golden_eval_result="",
-                golden_error="",
-                generated_query="",
-                generated_execution_result=executed_tools,
-                generated_eval_result="",
-                generated_error=None
-            )
-
-        except Exception as e:
-            score = 0
-            explanation = f"An error occurred during scoring: {e}"
-            logging.error(explanation)
-
-        return score, explanation
