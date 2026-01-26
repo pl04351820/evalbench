@@ -30,3 +30,4 @@ anthropic[vertex]
 sqlglot
 pymongo
 mongomock
+rich
