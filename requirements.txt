@@ -31,3 +31,4 @@ sqlglot
 pymongo
 mongomock
 rich
+google-adk
