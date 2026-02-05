@@ -54,19 +54,19 @@ class GeminiCliGenerator(QueryGenerator):
 
         if "mcpServers" not in current_settings:
             current_settings["mcpServers"] = {}
-        
+
         # Merge/Overwrite configurations
         for server_name, config in mcp_servers_config.items():
             if "command" not in config:
                 package_name = config.get("package", server_name)
-                
+
                 config["command"] = "npm"
                 args = config.get("args", [])
-                
+
                 config["args"] = ["exec", "--yes", package_name, "--"] + args
-            
+
             current_settings["mcpServers"][server_name] = config
-        
+
         with open(settings_path, 'w') as f:
             json.dump(current_settings, f, indent=2)
 
@@ -79,14 +79,14 @@ class GeminiCliGenerator(QueryGenerator):
             cmd = ["npm", "exec", "--yes", self.gemini_cli_version, "--", "extensions", "list"]
             result = subprocess.run(
                 cmd,
-                capture_output=True, 
+                capture_output=True,
                 text=True,
                 check=False
             )
- 
+
             for line in result.stdout.splitlines():
                 line = line.strip()
-                
+
                 warn_match = re.search(r"Warning: Skipping extension in (.*?): Configuration file not found", line)
                 if warn_match:
                     corrupted_path = warn_match.group(1).strip()
@@ -96,7 +96,7 @@ class GeminiCliGenerator(QueryGenerator):
                     except Exception as e:
                         logging.error(f"Failed to remove corrupted extension directory {corrupted_path}: {e}")
                     continue
-                
+
                 keychain_match = re.search(r"Warning: Skipping extension in (.*?): Keychain is not available", line)
                 if keychain_match:
                     ext_path = keychain_match.group(1).strip()
@@ -106,12 +106,12 @@ class GeminiCliGenerator(QueryGenerator):
                         if os.path.exists(manifest_path):
                             with open(manifest_path, 'r') as f:
                                 manifest_content = f.read()
-                                
+
                             manifest_content = manifest_content.replace('"sensitive": true', '"sensitive": false')
                             with open(manifest_path, 'w') as f:
                                 f.write(manifest_content)
                             logging.info(f"Successfully patched {manifest_path} to bypass keychain requirements.")
-                            
+
                             name_match = re.search(r"extensions/([^/]+)$", ext_path)
                             if name_match:
                                 installed_extensions.add(name_match.group(1))
@@ -121,15 +121,15 @@ class GeminiCliGenerator(QueryGenerator):
 
                 if not line or line.startswith("Source:") or line.startswith("Path:") or line.startswith("ID:") or line.startswith("name:"):
                     continue
-                
+
                 if "✓" in line or ("(" in line and ")" in line):
                     parts = line.split()
                     if len(parts) >= 2:
-                        if "(" in parts[0]: 
-                            continue 
-                        
+                        if "(" in parts[0]:
+                            continue
+
                         name = parts[1] if "✓" in parts[0] and len(parts) >= 2 else parts[0]
-                        
+
                         if not name.startswith("("):
                             installed_extensions.add(name)
 
@@ -144,7 +144,7 @@ class GeminiCliGenerator(QueryGenerator):
                 if ext_name in req:
                     keep = True
                     break
-            
+
             if not keep:
                 to_uninstall.append(ext_name)
 
@@ -170,7 +170,7 @@ class GeminiCliGenerator(QueryGenerator):
                 if "/" in ext and ext.rstrip("/").rstrip(".git").endswith(installed):
                     already_installed = True
                     break
-            
+
             if already_installed:
                 logging.info(f"Extension '{ext}' appears to be already installed. Skipping.")
                 continue
@@ -179,19 +179,19 @@ class GeminiCliGenerator(QueryGenerator):
             try:
                 # gemini extensions install <name_or_url> --consent
                 result = subprocess.run(
-                    ["npm", "exec", "--yes", self.gemini_cli_version, "--", "extensions", "install", ext, "--consent"], 
-                    check=False, 
+                    ["npm", "exec", "--yes", self.gemini_cli_version, "--", "extensions", "install", ext, "--consent"],
+                    check=False,
                     capture_output=True,
                     text=True,
                     input="\n" * 10,
-                    timeout=300  
+                    timeout=300
                 )
-                
+
                 if result.returncode == 0:
                     logging.info(f"Successfully installed extension: {ext}")
                 else:
                     logging.error(f"Failed to install extension {ext}. Return code: {result.returncode}, Output: {result.stdout}, Error: {result.stderr}")
-                
+
                 ext_name_match = re.search(r"([^/]+?)(?:\.git)?$", ext)
                 if ext_name_match:
                     search_name = ext_name_match.group(1)
