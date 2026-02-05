@@ -19,8 +19,10 @@ class AgentEvaluator:
     def __init__(
         self,
         config,
+        setup_config=None,
     ):
         self.config = config
+        self.setup_config = setup_config
 
         # Load model config if provided
         model_config = config
@@ -29,6 +31,11 @@ class AgentEvaluator:
             # Merge main config into loaded config, giving precedence to main config
             model_config = loaded_config.copy()
             model_config.update(config)
+
+        if self.setup_config:
+            if "setup" not in model_config:
+                model_config["setup"] = {}
+            model_config["setup"].update(self.setup_config)
 
         self.agent_version = model_config.get("gemini_cli_version", config.get("gemini_cli_version"))
 
