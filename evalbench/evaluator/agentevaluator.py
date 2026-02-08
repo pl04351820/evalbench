@@ -19,10 +19,8 @@ class AgentEvaluator:
     def __init__(
         self,
         config,
-        setup_config=None,
     ):
         self.config = config
-        self.setup_config = setup_config
 
         # Load model config if provided
         model_config = config
@@ -31,11 +29,6 @@ class AgentEvaluator:
             # Merge main config into loaded config, giving precedence to main config
             model_config = loaded_config.copy()
             model_config.update(config)
-
-        if self.setup_config:
-            if "setup" not in model_config:
-                model_config["setup"] = {}
-            model_config["setup"].update(self.setup_config)
 
         self.agent_version = model_config.get("gemini_cli_version", config.get("gemini_cli_version"))
 
@@ -119,7 +112,6 @@ class AgentEvaluator:
 
         for turn in range(max_turns):
             logging.info(f"Turn {turn + 1}/{max_turns} - Prompt: {current_prompt}")
-
             if isinstance(self.generator, GeminiCliGenerator):
                 cli_cmd = self.generator.create_command(
                     cli=self.agent_version,
@@ -127,9 +119,20 @@ class AgentEvaluator:
                     env=env,
                     resume=(turn > 0)
                 )
-                result = self.generator.safe_generate(cli_cmd)
+                try:
+                    result = self.generator.safe_generate(cli_cmd)
+                except Exception as e:
+                    logging.error(f'Gemini CLI execution failed: {e}')
+                    result = subprocess.CompletedProcess(
+                        args=[self.agent_version], returncode=1, stdout='', stderr=str(e)
+                    )
             else:
-                result = self.generator.generate(current_prompt)
+                try:
+                    result = self.generator.generate(current_prompt)
+                except Exception as e:
+                    logging.error(f'LLM generation failed: {e}')
+                    result = str(e)
+
 
             last_result = result
 
