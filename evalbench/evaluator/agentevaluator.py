@@ -30,13 +30,15 @@ class AgentEvaluator:
             model_config = loaded_config.copy()
             model_config.update(config)
 
-        self.agent_version = model_config.get("gemini_cli_version", config.get("gemini_cli_version"))
+        self.agent_version = model_config.get(
+            "gemini_cli_version", config.get("gemini_cli_version"))
 
         generator_type = model_config.get("generator")
         if generator_type == "gemini_cli":
             self.generator = GeminiCliGenerator(model_config)
         else:
-            raise ValueError(f"Unsupported generator type for AgentEvaluator: {generator_type}")
+            raise ValueError(
+                f"Unsupported generator type for AgentEvaluator: {generator_type}")
 
         runner_config = self.config.get("runners", {})
         self.agent_runners = runner_config.get("agent_runners", 10)
@@ -51,7 +53,8 @@ class AgentEvaluator:
         if isinstance(self.generator, GeminiCliGenerator):
             return self._evaluate_gemini_cli(dataset, job_id, run_time)
         else:
-            raise NotImplementedError("This evaluator currently only supports GeminiCliGenerator")
+            raise NotImplementedError(
+                "This evaluator currently only supports GeminiCliGenerator")
 
     def _evaluate_gemini_cli(
         self,
@@ -111,7 +114,8 @@ class AgentEvaluator:
         last_result = None
 
         for turn in range(max_turns):
-            logging.info(f"Turn {turn + 1}/{max_turns} - Prompt: {current_prompt}")
+            logging.info(
+                f"Turn {turn + 1}/{max_turns} - Prompt: {current_prompt}")
             if isinstance(self.generator, GeminiCliGenerator):
                 cli_cmd = self.generator.create_command(
                     cli=self.agent_version,
@@ -132,7 +136,6 @@ class AgentEvaluator:
                 except Exception as e:
                     logging.error(f'LLM generation failed: {e}')
                     result = str(e)
-
 
             last_result = result
 
@@ -174,9 +177,12 @@ class AgentEvaluator:
             )
 
     def _log_cli_result(self, turn: int, max_turns: int, result: subprocess.CompletedProcess):
-        logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI exit code: {result.returncode}")
-        logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI stdout: {result.stdout}")
-        logging.info(f"Turn {turn + 1}/{max_turns} - Gemini CLI stderr: {result.stderr}")
+        logging.info(
+            f"Turn {turn + 1}/{max_turns} - Gemini CLI exit code: {result.returncode}")
+        logging.info(
+            f"Turn {turn + 1}/{max_turns} - Gemini CLI stdout: {result.stdout}")
+        logging.info(
+            f"Turn {turn + 1}/{max_turns} - Gemini CLI stderr: {result.stderr}")
 
     def _finalize_scenario(
         self,

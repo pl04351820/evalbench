@@ -24,7 +24,7 @@ class GeminiCliGenerator(QueryGenerator):
         self.name = "gemini_cli"
 
         self.real_home = os.environ.get('HOME', os.path.expanduser('~'))
-        
+
         self.fake_home = os.path.abspath(os.path.join('.venv', 'fake_home'))
         self.gemini_home = os.path.join(self.fake_home, '.gemini')
         self.extensions_dir = os.path.join(self.gemini_home, 'extensions')
@@ -34,16 +34,19 @@ class GeminiCliGenerator(QueryGenerator):
 
         self.env = querygenerator_config.get("env", {})
         self.env['HOME'] = self.fake_home
-        
+
         if 'GOOGLE_APPLICATION_CREDENTIALS' not in self.env:
-            default_adc = os.path.join(self.real_home, '.config', 'gcloud', 'application_default_credentials.json')
+            default_adc = os.path.join(
+                self.real_home, '.config', 'gcloud', 'application_default_credentials.json')
             if os.path.exists(default_adc):
                 self.env['GOOGLE_APPLICATION_CREDENTIALS'] = default_adc
-                
-        if 'CLOUDSDK_CONFIG' not in self.env:
-            self.env['CLOUDSDK_CONFIG'] = os.path.join(self.real_home, '.config', 'gcloud')
 
-        self.gemini_cli_version = querygenerator_config.get("gemini_cli_version", "gemini-cli")
+        if 'CLOUDSDK_CONFIG' not in self.env:
+            self.env['CLOUDSDK_CONFIG'] = os.path.join(
+                self.real_home, '.config', 'gcloud')
+
+        self.gemini_cli_version = querygenerator_config.get(
+            "gemini_cli_version", "gemini-cli")
         self.setup_config = querygenerator_config.get("setup", {})
         if self.setup_config:
             self._setup()
@@ -57,10 +60,11 @@ class GeminiCliGenerator(QueryGenerator):
 
         # Setup MCP Servers
         if "mcp_servers" in self.setup_config:
-            self._setup_mcp_servers(self.setup_config["mcp_servers"], gemini_settings_path)
+            self._setup_mcp_servers(
+                self.setup_config["mcp_servers"], gemini_settings_path)
 
         self._setup_npm_auth()
-        
+
         # Install Extensions
         if "extensions" in self.setup_config:
             self._install_extensions(self.setup_config["extensions"])
@@ -68,7 +72,7 @@ class GeminiCliGenerator(QueryGenerator):
     def _setup_npm_auth(self):
         """Sets up NPM authentication for private registries in the FAKE HOME."""
         logging.info("Fetching new access token via gcloud auth command")
-        
+
         try:
             result = subprocess.run(
                 ["gcloud", "auth", "print-access-token"],
@@ -82,7 +86,8 @@ class GeminiCliGenerator(QueryGenerator):
             return
 
         if not access_token:
-            logging.error("Error: Failed to retrieve access token. Please run 'gcloud auth login' first.")
+            logging.error(
+                "Error: Failed to retrieve access token. Please run 'gcloud auth login' first.")
             return
 
         npmrc_file = os.path.join(self.fake_home, ".npmrc")
@@ -97,9 +102,9 @@ class GeminiCliGenerator(QueryGenerator):
         lines = []
         real_npmrc = os.path.join(self.real_home, ".npmrc")
         if os.path.exists(real_npmrc):
-             with open(real_npmrc, "r") as f:
+            with open(real_npmrc, "r") as f:
                 lines = f.readlines()
-    
+
         if os.path.exists(npmrc_file):
             with open(npmrc_file, "r") as f:
                 lines = f.readlines()
@@ -107,7 +112,7 @@ class GeminiCliGenerator(QueryGenerator):
         for registry in registries:
             token_line = f"{registry}:_authToken={access_token}\n"
             auth_line = f"{registry}:always-auth=true\n"
-            
+
             token_found = False
             for i, line in enumerate(lines):
                 if line.startswith(f"{registry}:_authToken="):
@@ -116,7 +121,7 @@ class GeminiCliGenerator(QueryGenerator):
                     break
             if not token_found:
                 lines.append(token_line)
-                
+
             auth_found = False
             for i, line in enumerate(lines):
                 if line.startswith(f"{registry}:always-auth=true"):
@@ -128,7 +133,8 @@ class GeminiCliGenerator(QueryGenerator):
         with open(npmrc_file, "w") as f:
             f.writelines(lines)
 
-        logging.info(f"NPM authentication updated successfully at {npmrc_file}")
+        logging.info(
+            f"NPM authentication updated successfully at {npmrc_file}")
 
     def _setup_mcp_servers(self, mcp_servers_config: dict, settings_path: str):
         """Configures MCP servers in the settings file."""
@@ -162,7 +168,7 @@ class GeminiCliGenerator(QueryGenerator):
         """Installs/Syncs specified extensions using gemini-cli."""
         if isinstance(extensions, list):
             extensions = {ext: {} for ext in set(extensions)}
-        
+
         extension_names = sorted(list(extensions.keys()))
 
         install_env = os.environ.copy()
@@ -170,7 +176,8 @@ class GeminiCliGenerator(QueryGenerator):
 
         installed_extensions = set()
         try:
-            cmd = ["npm", "exec", "--yes", self.gemini_cli_version, "--", "extensions", "list"]
+            cmd = ["npm", "exec", "--yes", self.gemini_cli_version,
+                   "--", "extensions", "list"]
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -182,21 +189,25 @@ class GeminiCliGenerator(QueryGenerator):
             for line in result.stdout.splitlines():
                 line = line.strip()
 
-                warn_match = re.search(r"Warning: Skipping extension in (.*?): Configuration file not found", line)
+                warn_match = re.search(
+                    r"Warning: Skipping extension in (.*?): Configuration file not found", line)
                 if warn_match:
                     corrupted_path = warn_match.group(1).strip()
-                    logging.warning(f"Detected corrupted extension at {corrupted_path}. Removing...")
+                    logging.warning(
+                        f"Detected corrupted extension at {corrupted_path}. Removing...")
                     try:
                         shutil.rmtree(corrupted_path)
                     except Exception as e:
-                        logging.error(f"Failed to remove corrupted extension directory {corrupted_path}: {e}")
+                        logging.error(
+                            f"Failed to remove corrupted extension directory {corrupted_path}: {e}")
                     continue
-                
-                keychain_match = re.search(r"Warning: Skipping extension in (.*?): Keychain is not available", line)
+
+                keychain_match = re.search(
+                    r"Warning: Skipping extension in (.*?): Keychain is not available", line)
                 if keychain_match:
                     ext_path = keychain_match.group(1).strip()
                     self._patch_manifest_sensitive(ext_path)
-                    
+
                     name_match = re.search(r"extensions/([^/]+)$", ext_path)
                     if name_match:
                         installed_extensions.add(name_match.group(1))
@@ -211,7 +222,8 @@ class GeminiCliGenerator(QueryGenerator):
                         if "(" in parts[0]:
                             continue
 
-                        name = parts[1] if "✓" in parts[0] and len(parts) >= 2 else parts[0]
+                        name = parts[1] if "✓" in parts[0] and len(
+                            parts) >= 2 else parts[0]
 
                         if not name.startswith("("):
                             installed_extensions.add(name)
@@ -235,13 +247,15 @@ class GeminiCliGenerator(QueryGenerator):
             for ext in to_uninstall:
                 try:
                     subprocess.run(
-                        ["npm", "exec", "--yes", self.gemini_cli_version, "--", "extensions", "uninstall", ext],
+                        ["npm", "exec", "--yes", self.gemini_cli_version,
+                            "--", "extensions", "uninstall", ext],
                         check=False,
                         capture_output=True,
                         env=install_env
                     )
                 except Exception as e:
-                    logging.warning(f"Failed to uninstall extension {ext}: {e}")
+                    logging.warning(
+                        f"Failed to uninstall extension {ext}: {e}")
 
         # Install requested extensions
         for ext in extension_names:
@@ -255,11 +269,12 @@ class GeminiCliGenerator(QueryGenerator):
                     break
 
             if already_installed:
-                logging.info(f"Extension '{ext}' appears to be already installed. Skipping.")
+                logging.info(
+                    f"Extension '{ext}' appears to be already installed. Skipping.")
                 continue
 
             logging.info(f"Installing extension: {ext}")
-            
+
             current_ext_env = install_env.copy()
             if extensions[ext] and "settings" in extensions[ext]:
                 current_ext_env.update(extensions[ext]["settings"])
@@ -267,7 +282,8 @@ class GeminiCliGenerator(QueryGenerator):
             try:
                 # gemini extensions install <name_or_url> --consent
                 result = subprocess.run(
-                    ['npm', 'exec', '--yes', self.gemini_cli_version, '--', 'extensions', 'install', ext, '--consent'],
+                    ['npm', 'exec', '--yes', self.gemini_cli_version,
+                        '--', 'extensions', 'install', ext, '--consent'],
                     check=False,
                     capture_output=True,
                     text=True,
@@ -275,9 +291,10 @@ class GeminiCliGenerator(QueryGenerator):
                     env=current_ext_env,
                     timeout=300
                 )
-                
+
                 if result.returncode != 0:
-                    logging.error(f"Failed to install extension {ext}. Output: {result.stdout}, Error: {result.stderr}")
+                    logging.error(
+                        f"Failed to install extension {ext}. Output: {result.stdout}, Error: {result.stderr}")
                 else:
                     logging.info(f"Successfully installed extension: {ext}")
 
@@ -287,7 +304,8 @@ class GeminiCliGenerator(QueryGenerator):
                     if os.path.exists(self.extensions_dir):
                         for item in os.listdir(self.extensions_dir):
                             if search_name in item:
-                                self._patch_manifest_sensitive(os.path.join(self.extensions_dir, item))
+                                self._patch_manifest_sensitive(
+                                    os.path.join(self.extensions_dir, item))
 
             except subprocess.TimeoutExpired:
                 logging.error(f"Installation of extension {ext} timed out.")
@@ -301,10 +319,12 @@ class GeminiCliGenerator(QueryGenerator):
             if os.path.exists(manifest_path):
                 with open(manifest_path, 'r') as f:
                     content = f.read()
-                
+
                 if '"sensitive": true' in content:
-                    logging.info(f"Patching manifest at {manifest_path} for headless compatibility.")
-                    content = content.replace('"sensitive": true', '"sensitive": false')
+                    logging.info(
+                        f"Patching manifest at {manifest_path} for headless compatibility.")
+                    content = content.replace(
+                        '"sensitive": true', '"sensitive": false')
                     with open(manifest_path, 'w') as f:
                         f.write(content)
         except Exception as e:
@@ -328,7 +348,7 @@ class GeminiCliGenerator(QueryGenerator):
 
     def _run_gemini_cli(self, cli_cmd: CLICommand):
         gemini_settings_path = os.path.join(self.gemini_home, "settings.json")
-        
+
         if not os.path.exists(gemini_settings_path):
             os.makedirs(os.path.dirname(gemini_settings_path), exist_ok=True)
             with open(gemini_settings_path, 'w') as f:
@@ -337,7 +357,7 @@ class GeminiCliGenerator(QueryGenerator):
         env = os.environ.copy()
         env.update(self.env)
         env.update(cli_cmd.env)
-        
+
         env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = gemini_settings_path
 
         command = [
@@ -384,20 +404,20 @@ class GeminiCliGenerator(QueryGenerator):
     def safe_generate(self, cli_cmd: CLICommand) -> subprocess.CompletedProcess:
         result = self.generate_internal(cli_cmd)
         if isinstance(result, str):
-             return subprocess.CompletedProcess(args=[], returncode=0, stdout=result)
-        
+            return subprocess.CompletedProcess(args=[], returncode=0, stdout=result)
+
         if not result.stdout and result.returncode != 0:
-             result.stderr += "\nError: Generator returned empty response."
+            result.stderr += "\nError: Generator returned empty response."
         return result
 
     def create_command(self, cli: str, prompt: str, env: dict = None, resume: bool = False) -> CLICommand:
         merged_env = self.env.copy()
-        
+
         if hasattr(self, "setup_config") and "extensions" in self.setup_config:
             for _, ext_data in self.setup_config["extensions"].items():
                 if ext_data and "settings" in ext_data:
                     merged_env.update(ext_data["settings"])
-                    
+
         if env:
             merged_env.update(env)
         return CLICommand(cli=cli, prompt=prompt, env=merged_env, resume=resume)
