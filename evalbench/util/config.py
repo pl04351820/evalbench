@@ -163,12 +163,6 @@ def set_session_configs(session, experiment_config: dict):
     if "setup" in experiment_config and experiment_config["setup"]:
         session["setup_config"] = experiment_config["setup"]
 
-    if "setup_directory" in experiment_config and experiment_config["setup_directory"]:
-        session["setup_config"]["setup_directory"] = experiment_config[
-            "setup_directory"
-        ]
-
-
 def generate_key(length=12):
     categories = [string.ascii_lowercase, string.digits, "_"]
     key = [random.choice(c) for c in random.sample(categories, 3)]
