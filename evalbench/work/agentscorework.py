@@ -3,7 +3,6 @@
 from typing import Any
 from work.work import Work
 from scorers import score as scorer
-from dataset.evaloutput import EvalOutput
 
 
 class AgentScoreWork(Work):
@@ -43,7 +42,7 @@ class AgentScoreWork(Work):
             "golden_error": "",
             "generated_sql": "skipped",
             "generated_result": self.eval_output.get("accumulated_tools", []),
-            "eval_results": "",
+            "eval_results": self.eval_output.get("conversation_history", "[]"),
             "generated_error": None,
             "dialects": metadata.get("dialects", []),
             "database": metadata.get("database", "unknown"),
