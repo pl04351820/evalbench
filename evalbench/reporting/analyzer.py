@@ -30,12 +30,15 @@ def analyze_one_metric(
     else:
         df = df[df["comparator"] == metric_name]
         non_binary_metrics = [
-            "turn_count", "end_to_end_latency", "tool_call_latency", "token_consumption"
+            "turn_count",
+            "end_to_end_latency",
+            "tool_call_latency",
+            "token_consumption",
         ]
         if metric_name in non_binary_metrics:
             avg_val = df["score"].mean() if not df.empty else 0.0
             total_sum = df["score"].sum() if not df.empty else 0.0
-            
+
             unit = ""
             if "latency" in metric_name:
                 unit = " ms"
@@ -43,7 +46,7 @@ def analyze_one_metric(
                 unit = " tokens"
             elif "turn" in metric_name:
                 unit = " turns"
-                
+
             logging.info(f"{metric_name}: \tAverage = {avg_val:.2f}{unit}")
             return {
                 "metric_name": metric_name,
