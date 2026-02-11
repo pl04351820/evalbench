@@ -35,7 +35,11 @@ class BehavioralMetrics(comparator.Comparator):
         if not generated_eval_result:
             return 0.0, "No eval result context passed."
 
-        context = generated_eval_result
+        try:
+            context = json.loads(generated_eval_result) if isinstance(generated_eval_result, str) else generated_eval_result
+        except json.JSONDecodeError:
+            return 0.0, "Invalid JSON in eval result context."
+
         conversation_history = context.get("conversation_history", "[]")
         scenario = context.get("scenario", {})
         conversation_plan = scenario.get("conversation_plan", "")

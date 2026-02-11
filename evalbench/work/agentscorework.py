@@ -5,6 +5,7 @@ from work.work import Work
 from scorers import score as scorer
 import threading
 
+
 class AgentScoreWork(Work):
     """Work class for scoring agent generation results."""
 

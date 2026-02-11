@@ -34,7 +34,11 @@ class ParameterAnalysis(comparator.Comparator):
         if not generated_eval_result:
             return 100.0, "No eval result context passed. Parameter analysis skipped."
 
-        context = generated_eval_result
+        try:
+            context = json.loads(generated_eval_result) if isinstance(generated_eval_result, str) else generated_eval_result
+        except json.JSONDecodeError:
+            return 100.0, "Invalid JSON in eval result context."
+
         conversation_history = context.get("conversation_history", "[]")
         accumulated_tools = context.get("accumulated_tools", [])
 

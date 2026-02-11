@@ -3,7 +3,6 @@
 ############################################################
 dataset_config: datasets/gemini-cli-tools/gemini-cli.evalset.json
 dataset_format: gemini-cli-format
-setup_directory: datasets/gemini-cli-tools/setup
 
 # Orchestrator Configuration
 orchestrator: geminicli
@@ -21,6 +20,10 @@ scorers:
     model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
   parameter_analysis:
     model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
+  turn_count: {}
+  end_to_end_latency: {}
+  tool_call_latency: {}
+  token_consumption: {}
 
 ############################################################
 ### Reporting Related Configs
