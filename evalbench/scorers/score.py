@@ -75,7 +75,7 @@ def compare(
             parameteranalysis.ParameterAnalysis(
                 scorers["parameter_analysis"], global_models
             )
-        )    
+        )
     if "turn_count" in scorers:
         comparators.append(
             turncount.TurnCount(scorers["turn_count"])

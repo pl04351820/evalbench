@@ -5,6 +5,7 @@ from generators.models import get_generator
 from .prompt.goalcompletion import GOAL_COMPLETION_PROMPT
 import json
 
+
 class GoalCompletionRate(comparator.Comparator):
     """
     Evaluates whether the agent accomplished the conversation plan's intent.
@@ -57,5 +58,5 @@ class GoalCompletionRate(comparator.Comparator):
                 return score, response_text
             return 0.0, "Failed to parse LLM evaluation response."
         except Exception as e:
-             logging.error(f'GoalCompletionRate generation failed: {e}')
+            logging.error(f'GoalCompletionRate generation failed: {e}')
              return 0.0, f"Error calling model: {e}"

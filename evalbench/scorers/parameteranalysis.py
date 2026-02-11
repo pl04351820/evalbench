@@ -5,6 +5,7 @@ from generators.models import get_generator
 from .prompt.parameteranalysis import PARAMETER_ANALYSIS_PROMPT
 import json
 
+
 class ParameterAnalysis(comparator.Comparator):
     """
     Evaluates tool execution parameters and provides qualitative feedback.
@@ -55,5 +56,5 @@ class ParameterAnalysis(comparator.Comparator):
             
             return 0.0, "Failed to parse LLM evaluation response."
         except Exception as e:
-             logging.error(f'ParameterAnalysis generation failed: {e}')
+            logging.error(f'ParameterAnalysis generation failed: {e}')
              return 0.0, f"Error calling model: {e}"

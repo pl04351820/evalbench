@@ -6,6 +6,7 @@ from .prompt.behavioralmetrics import BEHAVIORAL_METRICS_PROMPT
 import json
 import re
 
+
 class BehavioralMetrics(comparator.Comparator):
     """
     Evaluates both Hallucination Rate and Clarification Rate in a single LLM pass.
@@ -71,5 +72,5 @@ class BehavioralMetrics(comparator.Comparator):
             
             return 0.0, "Failed to parse LLM evaluation response."
         except Exception as e:
-             logging.error(f'BehavioralMetrics generation failed: {e}')
+            logging.error(f'BehavioralMetrics generation failed: {e}')
              return 0.0, f"Error calling model: {e}"

@@ -1,5 +1,5 @@
 GOAL_COMPLETION_PROMPT = """
-You are an expert evaluator assessing whether an AI agent successfully completed its assigned task. 
+You are an expert evaluator assessing whether an AI agent successfully completed its assigned task.
 Your evaluation must strictly focus on whether the agent achieved the intent stated in the conversation_plan.
 
 ### Input Data

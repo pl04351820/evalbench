@@ -1,5 +1,5 @@
 BEHAVIORAL_METRICS_PROMPT = """
-You are an expert AI evaluator assessing an agent's behavioral efficiency. 
+You are an expert AI evaluator assessing an agent's behavioral efficiency.
 Analyze the following conversation history based on two aspects: Hallucination and Clarification.
 
 ### Input Data

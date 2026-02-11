@@ -12,7 +12,7 @@ When providing your suggestions, consider the following best practices for tool 
 - **Focus**: Tools should be focused on a specific task. Aim for tools comprehensive enough to complete a task in one go, but avoid bundling unrelated actions.
 - **Idempotency**: Whenever possible, tools should be idempotent (e.g., returning success if a resource to be created already exists).
 - **Actionable Error Messages**: Errors should be clear and actionable, explaining what went wrong, why, and how to fix it instead of generic errors.
-- **API Clarity**: 
+- **API Clarity**:
   - Simplicity First: Stick to simple primitives (strings, integers, booleans), avoiding complex nested JSON, maps, or protos.
   - Limit Options: Aim for <5 parameters per tool.
   - Use Enums: Prefer enums over free-text strings or booleans for mutually exclusive options to constrain choices.
