@@ -31,12 +31,16 @@ class GoalCompletionRate(comparator.Comparator):
         generated_eval_result: Any,
         generated_error: Any,
     ) -> Tuple[float, str]:
-        
+
         if not generated_eval_result:
             return 0.0, "No eval result context passed."
 
         try:
-            context = json.loads(generated_eval_result) if isinstance(generated_eval_result, str) else generated_eval_result
+            context = (
+                json.loads(generated_eval_result)
+                if isinstance(generated_eval_result, str)
+                else generated_eval_result
+            )
         except json.JSONDecodeError:
             return 0.0, "Invalid JSON in eval result context."
 
@@ -51,7 +55,8 @@ class GoalCompletionRate(comparator.Comparator):
 
         try:
             response = self.model.generate(prompt)
-            response_text = getattr(response, 'stdout', response) if response else ""
+            response_text = getattr(
+                response, 'stdout', response) if response else ""
             if isinstance(response_text, str):
                 first_line = response_text.strip().split('\\n')[0].upper()
                 score = 100.0 if "PASS" in first_line else 0.0
@@ -59,4 +64,4 @@ class GoalCompletionRate(comparator.Comparator):
             return 0.0, "Failed to parse LLM evaluation response."
         except Exception as e:
             logging.error(f'GoalCompletionRate generation failed: {e}')
-             return 0.0, f"Error calling model: {e}"
+            return 0.0, f"Error calling model: {e}"

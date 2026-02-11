@@ -31,12 +31,18 @@ class ParameterAnalysis(comparator.Comparator):
         generated_eval_result: Any,
         generated_error: Any,
     ) -> Tuple[float, str]:
-        
+
         if not generated_eval_result:
-            return 100.0, "No eval result context passed. Parameter analysis skipped."
+            return 100.0, (
+                "No eval result context passed. Parameter analysis skipped."
+            )
 
         try:
-            context = json.loads(generated_eval_result) if isinstance(generated_eval_result, str) else generated_eval_result
+            context = (
+                json.loads(generated_eval_result)
+                if isinstance(generated_eval_result, str)
+                else generated_eval_result
+            )
         except json.JSONDecodeError:
             return 100.0, "Invalid JSON in eval result context."
 
@@ -50,11 +56,12 @@ class ParameterAnalysis(comparator.Comparator):
 
         try:
             response = self.model.generate(prompt)
-            response_text = getattr(response, 'stdout', response) if response else ""
+            response_text = getattr(
+                response, 'stdout', response) if response else ""
             if isinstance(response_text, str):
                 return 100.0, response_text
-            
+
             return 0.0, "Failed to parse LLM evaluation response."
         except Exception as e:
             logging.error(f'ParameterAnalysis generation failed: {e}')
-             return 0.0, f"Error calling model: {e}"
+            return 0.0, f"Error calling model: {e}"
