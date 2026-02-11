@@ -2,8 +2,8 @@
   "scenarios": [
     {
       "id": "cloud-sql-debug-01",
-      "starting_prompt": "list all instances in project ashishjindal-playground",
-      "conversation_plan": "Ask the agent to list instances in project ashishjindal-playground. Once all instances are listed if nl2code exist get its state and validate its RUNNABLE",
+      "starting_prompt": "list all instances in project astana-evaluation",
+      "conversation_plan": "Ask the agent to list instances in project astana-evaluation. Once all instances are listed if nl2code exist get its state and validate its RUNNABLE",
       "expected_trajectory": ["list_instances", "get_instance"],
       "env": {
         "GOOGLE_CLOUD_PROJECT": "astana-evaluation"
