@@ -12,7 +12,7 @@ class ParameterAnalysis(comparator.Comparator):
     """
 
     def __init__(self, config: dict, global_models):
-        self.name = "parameteranalysis"
+        self.name = "parameter_analysis"
         self.model_config = config.get("model_config") or ""
         if not self.model_config:
             raise ValueError("model_config is required for ParameterAnalysis")

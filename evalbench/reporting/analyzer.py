@@ -89,19 +89,18 @@ def analyze_result(scores, experiment_config: dict[str, str]):
 
     scorers = experiment_config["scorers"]
     num_scorers = len(scorers)
-    llm_metrics_mapping = {
-        "goal_completion": "goalcompletionrate",
-        "behavioral_metrics": "behavioralmetrics",
-        "parameter_analysis": "parameteranalysis",
-    }
+    llm_metrics_list = [
+        "goal_completion",
+        "behavioral_metrics",
+        "parameter_analysis",
+    ]
 
     for metric_name in scorers:
         metric_name = metric_name.strip()
         metric_score = 100
 
-        if metric_name in llm_metrics_mapping:
-            internal_name = llm_metrics_mapping[metric_name]
-            metric_df = df[df["comparator"] == internal_name]
+        if metric_name in llm_metrics_list:
+            metric_df = df[df["comparator"] == metric_name]
             for _, row in metric_df.iterrows():
                 logging.info(f"\\n--- {metric_name} Analysis ---")
                 if pd.notna(row.get("comparison_logs")):
