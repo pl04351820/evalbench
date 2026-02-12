@@ -40,7 +40,7 @@ class TrajectoryMatcher(comparator.Comparator):
                 dp[i][j] = min(
                     dp[i - 1][j] + 1,      # Deletion
                     dp[i][j - 1] + 1,      # Insertion
-                    dp[i - 1][j - 1] + cost # Substitution
+                    dp[i - 1][j - 1] + cost  # Substitution
                 )
 
         return dp[n][m]
@@ -94,7 +94,7 @@ class TrajectoryMatcher(comparator.Comparator):
             # Ordered comparison (Levenshtein distance)
             distance = self._levenshtein_distance(expected, actual)
             max_len = max(len(expected), len(actual))
-            
+
             # Normalize to 0-100 score
             normalized_score = max(0.0, 1.0 - (distance / max_len)) if max_len > 0 else 1.0
             score = normalized_score * 100.0
