@@ -3,6 +3,7 @@
 from typing import Any
 from work.work import Work
 from scorers import score as scorer
+import threading
 
 
 class AgentScoreWork(Work):
@@ -18,6 +19,13 @@ class AgentScoreWork(Work):
         self.config = config
         self.eval_output = eval_output
         self.scoring_results = scoring_results
+
+        if global_models is None:
+            global_models = {
+                "lock": threading.Lock(),
+                "semaphores": {},
+                "registered_models": {}
+            }
         self.global_models = global_models
 
     def run(self, work_config: Any = None) -> Any:
@@ -42,7 +50,7 @@ class AgentScoreWork(Work):
             "golden_error": "",
             "generated_sql": "skipped",
             "generated_result": self.eval_output.get("accumulated_tools", []),
-            "eval_results": self.eval_output.get("conversation_history", "[]"),
+            "eval_results": self.eval_output,
             "generated_error": None,
             "dialects": metadata.get("dialects", []),
             "database": metadata.get("database", "unknown"),

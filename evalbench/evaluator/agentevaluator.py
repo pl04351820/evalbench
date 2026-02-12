@@ -215,7 +215,7 @@ class AgentEvaluator:
         }
 
         score_work = AgentScoreWork(
-            config=metadata,
+            config=self.config,
             eval_output=eval_output_data,
             scoring_results=eval_result.scoring_results
         )
