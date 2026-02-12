@@ -48,7 +48,16 @@ class TokenConsumption(comparator.Comparator):
             return 0.0, "No conversation history provided."
 
         try:
-            history = json.loads(generated_eval_result)
+            history = (
+                json.loads(generated_eval_result)
+                if isinstance(generated_eval_result, str)
+                else generated_eval_result
+            )
+            if isinstance(history, dict):
+                history = history.get("conversation_history", "[]")
+            if isinstance(history, str):
+                history = json.loads(history)
+
             total_tokens = 0.0
 
             if isinstance(history, list):
