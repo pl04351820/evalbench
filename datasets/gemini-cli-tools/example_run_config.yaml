@@ -14,6 +14,12 @@ simulated_user_model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
 ############################################################
 scorers:
   trajectory_matcher: {}
+  goal_completion:
+    model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
+  behavioral_metrics:
+    model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
+  parameter_analysis:
+    model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
   turn_count: {}
   end_to_end_latency: {}
   tool_call_latency: {}
