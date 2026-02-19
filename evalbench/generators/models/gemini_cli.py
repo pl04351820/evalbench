@@ -66,8 +66,8 @@ class GeminiCliGenerator(QueryGenerator):
         self._setup_npm_auth()
 
         # Install Extensions
-        if "extensions" in self.setup_config:
-            self._install_extensions(self.setup_config["extensions"])
+        extensions_config = self.setup_config.get("extensions", {})
+        self._install_extensions(extensions_config)
 
     def _setup_npm_auth(self):
         """Sets up NPM authentication for private registries in the FAKE HOME."""

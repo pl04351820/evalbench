@@ -32,3 +32,4 @@ pymongo
 mongomock
 rich
 google-adk
+mcp
