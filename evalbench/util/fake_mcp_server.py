@@ -12,6 +12,7 @@ from mcp.types import Tool, TextContent
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
+
 async def run_server(args):
     try:
         with open(args.config, 'r') as f:
@@ -42,7 +43,7 @@ async def run_server(args):
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not any(t.name == name for t in tools):
             raise ValueError(f"Tool {name} not found")
-            
+
         result = {
             "status": "success",
             "tool": name,
@@ -59,13 +60,15 @@ async def run_server(args):
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 
+
 def main():
     parser = argparse.ArgumentParser(description="Fake MCP Server")
     parser.add_argument("--config", required=True, help="Path to config yaml")
     parser.add_argument("--server-name", required=True, help="Server name in config")
     args = parser.parse_args()
-    
+
     asyncio.run(run_server(args))
+
 
 if __name__ == "__main__":
     main()
