@@ -170,7 +170,7 @@ class GeminiCliGenerator(QueryGenerator):
 
     def _verify_mcp_server(self, server_name: str, config: dict) -> bool:
         """Verifies that an MCP server can start and respond to initialization."""
-        
+
         # Check if it's a remote server (HTTP/SSE)
         if "url" in config or "httpUrl" in config:
             return self._verify_remote_mcp_server(server_name, config)
@@ -184,7 +184,7 @@ class GeminiCliGenerator(QueryGenerator):
         url = config.get("httpUrl") or config.get("url")
         headers = config.get("headers", {}).copy()
         headers["Content-Type"] = "application/json"
-        
+
         logging.info(f"Verifying remote MCP server {server_name} at {url}")
 
         payload = {
@@ -196,17 +196,17 @@ class GeminiCliGenerator(QueryGenerator):
         data = json.dumps(payload).encode("utf-8")
 
         try:
-             req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-             
-             try:
-                 with urllib.request.urlopen(req, timeout=5) as response:
-                     if response.status < 400:
-                         logging.info(f"Remote MCP server {server_name} verification: Reachable (Status {response.status})")
-                         return True
-                     else:
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+
+            try:
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    if response.status < 400:
+                        logging.info(f"Remote MCP server {server_name} verification: Reachable (Status {response.status})")
+                        return True
+                    else:
                         logging.error(f"Remote MCP server {server_name} verification failed: HTTP {response.status}. Reason: {response.reason}")
                         return False
-             except urllib.error.HTTPError as e:
+            except urllib.error.HTTPError as e:
                 logging.error(f"Remote MCP server {server_name} verification failed: HTTP {e.code} {e.reason}")
                 return False
 
@@ -393,7 +393,7 @@ class GeminiCliGenerator(QueryGenerator):
             # Filter out benign schema warnings from json decoder from stderr to reduce noise
             if result.stderr:
                 result.stderr = "\n".join([
-                    line for line in result.stderr.splitlines() 
+                    line for line in result.stderr.splitlines()
                     if 'unknown format "google-duration" ignored' not in line
                 ])
             return result
