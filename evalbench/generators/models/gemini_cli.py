@@ -5,6 +5,8 @@ import json
 import logging
 import re
 import shutil
+import urllib.request
+import urllib.error
 
 
 class CLICommand:
@@ -137,7 +139,7 @@ class GeminiCliGenerator(QueryGenerator):
             f"NPM authentication updated successfully at {npmrc_file}")
 
     def _setup_mcp_servers(self, mcp_servers_config: dict, settings_path: str):
-        """Configures MCP servers in the settings file."""
+        """Configures MCP servers in the settings file and verifies connectivity."""
         current_settings = {}
         if os.path.exists(settings_path):
             try:
@@ -149,20 +151,68 @@ class GeminiCliGenerator(QueryGenerator):
         if "mcpServers" not in current_settings:
             current_settings["mcpServers"] = {}
 
-        # Merge/Overwrite configurations
+        existing_servers = list(current_settings["mcpServers"].keys())
+        for server in existing_servers:
+            if server not in mcp_servers_config:
+                logging.info(f"Removing stale MCP server configuration: {server}")
+                del current_settings["mcpServers"][server]
+
         for server_name, config in mcp_servers_config.items():
-            if "command" not in config:
-                package_name = config.get("package", server_name)
-
-                config["command"] = "npm"
-                args = config.get("args", [])
-
-                config["args"] = ["exec", "--yes", package_name, "--"] + args
+            logging.info(f"Verifying MCP server: {server_name}")
+            if not self._verify_mcp_server(server_name, config):
+                raise RuntimeError(
+                    f"MCP Server '{server_name}' failed verification. Please check the configuration and ensure the server is running correctly.")
 
             current_settings["mcpServers"][server_name] = config
 
         with open(settings_path, 'w') as f:
             json.dump(current_settings, f, indent=2)
+
+    def _verify_mcp_server(self, server_name: str, config: dict) -> bool:
+        """Verifies that an MCP server can start and respond to initialization."""
+        
+        # Check if it's a remote server (HTTP/SSE)
+        if "url" in config or "httpUrl" in config:
+            return self._verify_remote_mcp_server(server_name, config)
+
+        logging.info(f"Skipping verification for local MCP server: {server_name}")
+        return True
+
+    def _verify_remote_mcp_server(self, server_name: str, config: dict) -> bool:
+        """Verifies a remote MCP server (HTTP/SSE)."""
+
+        url = config.get("httpUrl") or config.get("url")
+        headers = config.get("headers", {}).copy()
+        headers["Content-Type"] = "application/json"
+        
+        logging.info(f"Verifying remote MCP server {server_name} at {url}")
+
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "tools/list",
+            "id": 1,
+            "params": {}
+        }
+        data = json.dumps(payload).encode("utf-8")
+
+        try:
+             req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+             
+             try:
+                 with urllib.request.urlopen(req, timeout=5) as response:
+                     if response.status < 400:
+                         logging.info(f"Remote MCP server {server_name} verification: Reachable (Status {response.status})")
+                         return True
+                     else:
+                        logging.error(f"Remote MCP server {server_name} verification failed: HTTP {response.status}. Reason: {response.reason}")
+                        return False
+             except urllib.error.HTTPError as e:
+                logging.error(f"Remote MCP server {server_name} verification failed: HTTP {e.code} {e.reason}")
+                return False
+
+        except Exception as e:
+            logging.error(f"Failed to verify remote MCP server {server_name}: {e}")
+            return False
 
     def _install_extensions(self, extensions: dict | list):
         """Installs/Syncs specified extensions using gemini-cli."""
@@ -340,6 +390,12 @@ class GeminiCliGenerator(QueryGenerator):
             result = subprocess.run(
                 command, capture_output=True, text=True, check=False, env=env
             )
+            # Filter out benign schema warnings from json decoder from stderr to reduce noise
+            if result.stderr:
+                result.stderr = "\n".join([
+                    line for line in result.stderr.splitlines() 
+                    if 'unknown format "google-duration" ignored' not in line
+                ])
             return result
         except FileNotFoundError:
             return subprocess.CompletedProcess(command, 127, "", f"Error: Command not found: {command[0]}")
