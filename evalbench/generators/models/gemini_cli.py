@@ -137,7 +137,7 @@ class GeminiCliGenerator(QueryGenerator):
             f"NPM authentication updated successfully at {npmrc_file}")
 
     def _setup_mcp_servers(self, mcp_servers_config: dict, settings_path: str):
-        """Configures MCP servers in the settings file."""
+        """Configures MCP servers in the settings file and verifies connectivity."""
         current_settings = {}
         if os.path.exists(settings_path):
             try:
@@ -149,20 +149,105 @@ class GeminiCliGenerator(QueryGenerator):
         if "mcpServers" not in current_settings:
             current_settings["mcpServers"] = {}
 
-        # Merge/Overwrite configurations
+        existing_servers = list(current_settings["mcpServers"].keys())
+        for server in existing_servers:
+            if server not in mcp_servers_config:
+                logging.info(f"Removing stale MCP server configuration: {server}")
+                del current_settings["mcpServers"][server]
+
         for server_name, config in mcp_servers_config.items():
-            if "command" not in config:
-                package_name = config.get("package", server_name)
-
-                config["command"] = "npm"
-                args = config.get("args", [])
-
-                config["args"] = ["exec", "--yes", package_name, "--"] + args
-
             current_settings["mcpServers"][server_name] = config
 
         with open(settings_path, 'w') as f:
             json.dump(current_settings, f, indent=2)
+
+        for server_name, config in mcp_servers_config.items():
+            logging.info(f"Verifying MCP server: {server_name}")
+            if not self._verify_mcp_server(server_name, settings_path):
+                raise RuntimeError(
+                    f"MCP Server '{server_name}' failed verification. Please check the configuration and ensure the server is running correctly.")
+
+    def _verify_mcp_server(self, server_name: str, settings_path: str) -> bool:
+        """Verifies an MCP server by asking the Gemini model CLI what tools it has loaded."""
+
+        verify_env = os.environ.copy()
+        verify_env.update(self.env)
+        verify_env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = settings_path
+
+        prompt = "List the exact names of all tools provided to you. Return ONLY a JSON array of their names. Do not include markdown formatting or backticks."
+        cmd = [
+            "npm", "exec", "--yes", self.gemini_cli_version, "--",
+            "run", prompt, "--output-format", "json"
+        ]
+
+        if hasattr(self, "model") and isinstance(self.model, str):
+            cmd.extend(["--model", self.model])
+
+        cmd.extend(["--allowed-mcp-server-names", server_name])
+
+        logging.info(f"Running gemini cli to verify loaded tools for MCP server: {server_name}")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+                env=verify_env,
+                timeout=120
+            )
+
+            if result.returncode != 0:
+                logging.error(f"MCP server '{server_name}' failed verification. CLI Error:\n{result.stderr}")
+                return False
+
+            stdout = result.stdout.strip()
+
+            try:
+                json_start = stdout.find('{')
+                json_end = stdout.rfind('}') + 1
+                if json_start >= 0 and json_end > json_start:
+                    envelope = json.loads(stdout[json_start:json_end])
+                    if "response" in envelope:
+                        response_text = envelope["response"].strip()
+
+                        if response_text.startswith('```'):
+                            lines = response_text.split('\n')
+                            if lines and lines[0].startswith('```'):
+                                lines = lines[1:]
+                            if lines and lines[-1].startswith('```'):
+                                lines = lines[:-1]
+                            response_text = '\n'.join(lines).strip()
+
+                        tools = json.loads(response_text)
+
+                        if isinstance(tools, list):
+                            # Filter out standard Gemini CLI built-in tools
+                            built_in_tools = {
+                                "list_directory", "read_file", "search_file_content", "glob",
+                                "activate_skill", "save_memory", "google_web_search", "write_todos",
+                                "delegate_to_agent", "grep_search", "codebase_investigator", "cli_help"
+                            }
+                            mcp_tools = [t for t in tools if t not in built_in_tools]
+
+                            if len(mcp_tools) > 0:
+                                logging.info(f"MCP server '{server_name}' successfully loaded {len(mcp_tools)} tools: {mcp_tools}")
+                                return True
+                            else:
+                                logging.error(f"MCP server '{server_name}' returned 0 non-builtin tools. The server might be unreachable or lacks tools.")
+                                return False
+            except Exception as e:
+                logging.debug(f"Failed to parse tools from MCP server {server_name}: {e}")
+
+            logging.error(f"MCP server '{server_name}' didn't return a clear JSON array. Output: {stdout}")
+            return False
+
+        except subprocess.TimeoutExpired:
+            logging.error(f"Verification of MCP server {server_name} timed out.")
+            return False
+        except Exception as e:
+            logging.error(f"Failed to verify MCP server {server_name}: {e}")
+            return False
 
     def _install_extensions(self, extensions: dict | list):
         """Installs/Syncs specified extensions using gemini-cli."""
@@ -340,6 +425,12 @@ class GeminiCliGenerator(QueryGenerator):
             result = subprocess.run(
                 command, capture_output=True, text=True, check=False, env=env
             )
+            # Filter out benign schema warnings from json decoder from stderr to reduce noise
+            if result.stderr:
+                result.stderr = "\n".join([
+                    line for line in result.stderr.splitlines()
+                    if 'unknown format "google-duration" ignored' not in line
+                ])
             return result
         except FileNotFoundError:
             return subprocess.CompletedProcess(command, 127, "", f"Error: Command not found: {command[0]}")
