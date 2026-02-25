@@ -171,7 +171,7 @@ class GeminiCliGenerator(QueryGenerator):
 
     def _verify_mcp_server(self, server_name: str, settings_path: str) -> bool:
         """Verifies an MCP server by asking the Gemini model CLI what tools it has loaded."""
-        
+
         verify_env = os.environ.copy()
         verify_env.update(self.env)
         verify_env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = settings_path
@@ -184,11 +184,11 @@ class GeminiCliGenerator(QueryGenerator):
 
         if hasattr(self, "model") and isinstance(self.model, str):
             cmd.extend(["--model", self.model])
-            
+
         cmd.extend(["--allowed-mcp-server-names", server_name])
-        
+
         logging.info(f"Running gemini cli to verify loaded tools for MCP server: {server_name}")
-        
+
         try:
             result = subprocess.run(
                 cmd,
@@ -202,9 +202,9 @@ class GeminiCliGenerator(QueryGenerator):
             if result.returncode != 0:
                 logging.error(f"MCP server '{server_name}' failed verification. CLI Error:\n{result.stderr}")
                 return False
-                
+
             stdout = result.stdout.strip()
-            
+
             try:
                 json_start = stdout.find('{')
                 json_end = stdout.rfind('}') + 1
@@ -212,7 +212,7 @@ class GeminiCliGenerator(QueryGenerator):
                     envelope = json.loads(stdout[json_start:json_end])
                     if "response" in envelope:
                         response_text = envelope["response"].strip()
-                        
+
                         if response_text.startswith('```'):
                             lines = response_text.split('\n')
                             if lines and lines[0].startswith('```'):
@@ -220,18 +220,18 @@ class GeminiCliGenerator(QueryGenerator):
                             if lines and lines[-1].startswith('```'):
                                 lines = lines[:-1]
                             response_text = '\n'.join(lines).strip()
-                            
+
                         tools = json.loads(response_text)
-                        
+
                         if isinstance(tools, list):
                             # Filter out standard Gemini CLI built-in tools
                             built_in_tools = {
-                                "list_directory", "read_file", "search_file_content", "glob", 
-                                "activate_skill", "save_memory", "google_web_search", "write_todos", 
+                                "list_directory", "read_file", "search_file_content", "glob",
+                                "activate_skill", "save_memory", "google_web_search", "write_todos",
                                 "delegate_to_agent", "grep_search", "codebase_investigator", "cli_help"
                             }
                             mcp_tools = [t for t in tools if t not in built_in_tools]
-                            
+
                             if len(mcp_tools) > 0:
                                 logging.info(f"MCP server '{server_name}' successfully loaded {len(mcp_tools)} tools: {mcp_tools}")
                                 return True
@@ -241,7 +241,7 @@ class GeminiCliGenerator(QueryGenerator):
             except Exception as e:
                 logging.debug(f"Failed to parse tools from MCP server {server_name}: {e}")
                 pass
-                
+
             logging.error(f"MCP server '{server_name}' didn't return a clear JSON array. Output: {stdout}")
             return False
 
