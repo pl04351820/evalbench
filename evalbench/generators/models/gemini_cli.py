@@ -158,60 +158,98 @@ class GeminiCliGenerator(QueryGenerator):
                 del current_settings["mcpServers"][server]
 
         for server_name, config in mcp_servers_config.items():
-            logging.info(f"Verifying MCP server: {server_name}")
-            if not self._verify_mcp_server(server_name, config):
-                raise RuntimeError(
-                    f"MCP Server '{server_name}' failed verification. Please check the configuration and ensure the server is running correctly.")
-
             current_settings["mcpServers"][server_name] = config
 
         with open(settings_path, 'w') as f:
             json.dump(current_settings, f, indent=2)
 
-    def _verify_mcp_server(self, server_name: str, config: dict) -> bool:
-        """Verifies that an MCP server can start and respond to initialization."""
+        for server_name, config in mcp_servers_config.items():
+            logging.info(f"Verifying MCP server: {server_name}")
+            if not self._verify_mcp_server(server_name, settings_path):
+                raise RuntimeError(
+                    f"MCP Server '{server_name}' failed verification. Please check the configuration and ensure the server is running correctly.")
 
-        # Check if it's a remote server (HTTP/SSE)
-        if "url" in config or "httpUrl" in config:
-            return self._verify_remote_mcp_server(server_name, config)
+    def _verify_mcp_server(self, server_name: str, settings_path: str) -> bool:
+        """Verifies an MCP server by asking the Gemini model CLI what tools it has loaded."""
+        
+        verify_env = os.environ.copy()
+        verify_env.update(self.env)
+        verify_env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = settings_path
 
-        logging.info(f"Skipping verification for local MCP server: {server_name}")
-        return True
+        prompt = "List the exact names of all tools provided to you. Return ONLY a JSON array of their names. Do not include markdown formatting or backticks."
+        cmd = [
+            "npm", "exec", "--yes", self.gemini_cli_version, "--",
+            "run", prompt, "--output-format", "json"
+        ]
 
-    def _verify_remote_mcp_server(self, server_name: str, config: dict) -> bool:
-        """Verifies a remote MCP server (HTTP/SSE)."""
-
-        url = config.get("httpUrl") or config.get("url")
-        headers = config.get("headers", {}).copy()
-        headers["Content-Type"] = "application/json"
-
-        logging.info(f"Verifying remote MCP server {server_name} at {url}")
-
-        payload = {
-            "jsonrpc": "2.0",
-            "method": "tools/list",
-            "id": 1,
-            "params": {}
-        }
-        data = json.dumps(payload).encode("utf-8")
-
+        if hasattr(self, "model") and isinstance(self.model, str):
+            cmd.extend(["--model", self.model])
+            
+        cmd.extend(["--allowed-mcp-server-names", server_name])
+        
+        logging.info(f"Running gemini cli to verify loaded tools for MCP server: {server_name}")
+        
         try:
-            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+                env=verify_env,
+                timeout=120
+            )
 
-            try:
-                with urllib.request.urlopen(req, timeout=5) as response:
-                    if response.status < 400:
-                        logging.info(f"Remote MCP server {server_name} verification: Reachable (Status {response.status})")
-                        return True
-                    else:
-                        logging.error(f"Remote MCP server {server_name} verification failed: HTTP {response.status}. Reason: {response.reason}")
-                        return False
-            except urllib.error.HTTPError as e:
-                logging.error(f"Remote MCP server {server_name} verification failed: HTTP {e.code} {e.reason}")
+            if result.returncode != 0:
+                logging.error(f"MCP server '{server_name}' failed verification. CLI Error:\n{result.stderr}")
                 return False
+                
+            stdout = result.stdout.strip()
+            
+            try:
+                json_start = stdout.find('{')
+                json_end = stdout.rfind('}') + 1
+                if json_start >= 0 and json_end > json_start:
+                    envelope = json.loads(stdout[json_start:json_end])
+                    if "response" in envelope:
+                        response_text = envelope["response"].strip()
+                        
+                        if response_text.startswith('```'):
+                            lines = response_text.split('\n')
+                            if lines and lines[0].startswith('```'):
+                                lines = lines[1:]
+                            if lines and lines[-1].startswith('```'):
+                                lines = lines[:-1]
+                            response_text = '\n'.join(lines).strip()
+                            
+                        tools = json.loads(response_text)
+                        
+                        if isinstance(tools, list):
+                            # Filter out standard Gemini CLI built-in tools
+                            built_in_tools = {
+                                "list_directory", "read_file", "search_file_content", "glob", 
+                                "activate_skill", "save_memory", "google_web_search", "write_todos", 
+                                "delegate_to_agent", "grep_search", "codebase_investigator", "cli_help"
+                            }
+                            mcp_tools = [t for t in tools if t not in built_in_tools]
+                            
+                            if len(mcp_tools) > 0:
+                                logging.info(f"MCP server '{server_name}' successfully loaded {len(mcp_tools)} tools: {mcp_tools}")
+                                return True
+                            else:
+                                logging.error(f"MCP server '{server_name}' returned 0 non-builtin tools. The server might be unreachable or lacks tools.")
+                                return False
+            except Exception as e:
+                logging.debug(f"Failed to parse tools from MCP server {server_name}: {e}")
+                pass
+                
+            logging.error(f"MCP server '{server_name}' didn't return a clear JSON array. Output: {stdout}")
+            return False
 
+        except subprocess.TimeoutExpired:
+            logging.error(f"Verification of MCP server {server_name} timed out.")
+            return False
         except Exception as e:
-            logging.error(f"Failed to verify remote MCP server {server_name}: {e}")
+            logging.error(f"Failed to verify MCP server {server_name}: {e}")
             return False
 
     def _install_extensions(self, extensions: dict | list):
