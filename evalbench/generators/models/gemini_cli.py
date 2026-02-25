@@ -5,8 +5,6 @@ import json
 import logging
 import re
 import shutil
-import urllib.request
-import urllib.error
 
 
 class CLICommand:
