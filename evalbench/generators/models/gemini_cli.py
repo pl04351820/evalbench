@@ -238,7 +238,6 @@ class GeminiCliGenerator(QueryGenerator):
                                 return False
             except Exception as e:
                 logging.debug(f"Failed to parse tools from MCP server {server_name}: {e}")
-                pass
 
             logging.error(f"MCP server '{server_name}' didn't return a clear JSON array. Output: {stdout}")
             return False
