@@ -128,22 +128,68 @@ def config_to_df(
     return df
 
 
-def update_google3_relative_paths(experiment_config: dict, session_id: str):
+def df_to_config(df: pd.DataFrame) -> dict:
+    import ast
+
+    original_dict = {}
+
+    for _, row in df.iterrows():
+        key_path = row["config"]
+        value_str = row["value"]
+
+        try:
+            if pd.isna(value_str):
+                value = None
+            else:
+                value = ast.literal_eval(value_str)
+        except (ValueError, SyntaxError, TypeError):
+            value = value_str
+
+        keys = key_path.split(".")
+
+        current_level = original_dict
+        for key in keys[:-1]:
+            if key not in current_level:
+                current_level[key] = {}
+            current_level = current_level[key]
+
+        current_level[keys[-1]] = value
+
+    return original_dict
+
+
+def update_google3_relative_paths(
+    experiment_config: dict, session_id: str, resource_map: dict
+):
     if isinstance(experiment_config, dict):
         for key, value in experiment_config.items():
             if isinstance(value, dict):
-                update_google3_relative_paths(value, session_id)
+                update_google3_relative_paths(value, session_id, resource_map)
             elif isinstance(value, list):
                 values = []
                 for sub_value in value:
                     if isinstance(sub_value, str) and sub_value.startswith("google3/"):
                         values.append(get_google3_relative_path(sub_value, session_id))
+                    elif isinstance(sub_value, str) and sub_value in resource_map:
+                        values.append(
+                            os.path.join(
+                                SESSION_RESOURCES_PATH,
+                                session_id,
+                                resource_map[sub_value],
+                            )
+                        )
                     else:
                         values.append(sub_value)
                 experiment_config[key] = values
             elif isinstance(value, str) and value.startswith("google3/"):
                 experiment_config[key] = get_google3_relative_path(
                     experiment_config[key], session_id
+                )
+            elif isinstance(value, str) and value in resource_map:
+                experiment_config[key] = os.path.join(
+                    SESSION_RESOURCES_PATH,
+                    session_id,
+                    resource_map[value],
                 )
 
 
