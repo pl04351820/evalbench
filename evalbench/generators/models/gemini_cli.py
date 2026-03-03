@@ -28,9 +28,11 @@ class GeminiCliGenerator(QueryGenerator):
         self.fake_home = os.path.abspath(os.path.join('.venv', 'fake_home'))
         self.gemini_home = os.path.join(self.fake_home, '.gemini')
         self.extensions_dir = os.path.join(self.gemini_home, 'extensions')
+        self.skills_dir = os.path.join(self.gemini_home, 'skills')
 
         os.makedirs(self.fake_home, exist_ok=True)
         os.makedirs(self.extensions_dir, exist_ok=True)
+        os.makedirs(self.skills_dir, exist_ok=True)
 
         self.env = querygenerator_config.get("env", {})
         self.env['HOME'] = self.fake_home
@@ -138,6 +140,29 @@ class GeminiCliGenerator(QueryGenerator):
 
         logging.info(
             f"NPM authentication updated successfully at {npmrc_file}")
+
+    def _setup_skills(self, skills: list[str]):
+        """Copies specified skills from real home to fake home."""
+        if not skills:
+            return
+            
+        real_skills_dir = os.path.join(self.real_home, ".gemini", "skills")
+        
+        for skill_name in skills:
+            real_skill_path = os.path.join(real_skills_dir, skill_name)
+            fake_skill_path = os.path.join(self.skills_dir, skill_name)
+            
+            if not os.path.exists(real_skill_path):
+                logging.warning(f"Requested skill '{skill_name}' not found at {real_skill_path}.")
+                continue
+                
+            logging.info(f"Syncing skill: {skill_name}")
+            if os.path.exists(fake_skill_path):
+                shutil.rmtree(fake_skill_path)
+            try:
+                shutil.copytree(real_skill_path, fake_skill_path)
+            except Exception as e:
+                logging.error(f"Failed to copy skill {skill_name}: {e}")
 
     def _setup_mcp_servers(self, mcp_servers_config: dict, settings_path: str):
         """Configures MCP servers in the settings file and verifies connectivity."""
