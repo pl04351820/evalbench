@@ -621,8 +621,12 @@ class GeminiCliGenerator(QueryGenerator):
                                 t1 = dateutil.parser.isoparse(tu["timestamp"])
                                 t2 = dateutil.parser.isoparse(tr["timestamp"])
                                 duration = int((t2 - t1).total_seconds() * 1000)
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logging.debug(
+                                    "Failed to parse tool timestamps for duration calculation: "
+                                    f"tool_use_ts={tu.get('timestamp')!r}, "
+                                    f"tool_result_ts={tr.get('timestamp')!r}, error={e}"
+                                )
 
                         tstat["durationMs"] += duration
                         tools_stats["totalDurationMs"] += duration
