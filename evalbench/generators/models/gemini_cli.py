@@ -59,15 +59,18 @@ class GeminiCliGenerator(QueryGenerator):
             os.makedirs(os.path.dirname(gemini_settings_path), exist_ok=True)
 
         # Setup MCP Servers
-        if "mcp_servers" in self.setup_config:
-            self._setup_mcp_servers(
-                self.setup_config["mcp_servers"], gemini_settings_path)
+        mcp_servers_config = self.setup_config.get("mcp_servers", {})
+        self._setup_mcp_servers(mcp_servers_config, gemini_settings_path)
 
         self._setup_npm_auth()
 
         # Install Extensions
         extensions_config = self.setup_config.get("extensions", {})
         self._install_extensions(extensions_config)
+
+        # Setup Skills
+        skills_config = self.setup_config.get("skills", [])
+        self._setup_skills(skills_config)
 
     def _setup_npm_auth(self):
         """Sets up NPM authentication for private registries in the FAKE HOME."""
@@ -248,6 +251,79 @@ class GeminiCliGenerator(QueryGenerator):
         except Exception as e:
             logging.error(f"Failed to verify MCP server {server_name}: {e}")
             return False
+
+
+    def _setup_skills(self, skills: list):
+        """Sets up skills by linking, installing, enabling, disabling, or uninstalling using gemini-cli."""
+        if not skills:
+            return
+
+        install_env = os.environ.copy()
+        install_env.update(self.env)
+        
+        gemini_settings_path = os.path.join(self.gemini_home, "settings.json")
+        install_env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = gemini_settings_path
+
+        for skill in skills:
+            # Handle backward compatibility: strings are treated as link paths by default
+            if isinstance(skill, str):
+                skill_conf = {"action": "link", "path": skill}
+            else:
+                skill_conf = skill
+
+            action = skill_conf.get("action", "link")
+            scope = skill_conf.get("scope")
+            
+            cmd = ['npm', 'exec', '--yes', self.gemini_cli_version, '--', 'skills', action]
+
+            if action in ["link", "install"]:
+                target = skill_conf.get("url") or skill_conf.get("path")
+                if not target:
+                    logging.error(f"Failed to {action} skill: Missing 'url' or 'path' in config: {skill_conf}")
+                    continue
+                cmd.append(target)
+                
+                if action == "install" and skill_conf.get("url") and skill_conf.get("path"):
+                    cmd.extend(["--path", skill_conf.get("path")])
+                
+                # Links and installs require consent in typical environments
+                cmd.append('--consent')
+            
+            elif action in ["enable", "disable", "uninstall"]:
+                name = skill_conf.get("name")
+                if not name:
+                    logging.error(f"Failed to {action} skill: Missing 'name' in config: {skill_conf}")
+                    continue
+                cmd.append(name)
+            else:
+                logging.error(f"Unknown skill action '{action}' in config: {skill_conf}")
+                continue
+
+            if scope:
+                cmd.extend(["--scope", scope])
+
+            logging.info(f"Executing skill command: {' '.join(cmd)}")
+            try:
+                # Force interactive consent prompts to safely pass or fail via input
+                result = subprocess.run(
+                    cmd,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    input='\n' * 5,
+                    env=install_env,
+                    timeout=300
+                )
+
+                if result.returncode != 0:
+                    logging.error(f"Failed to execute skill {action}. Command: {' '.join(cmd)}\nOutput: {result.stdout}\nError: {result.stderr}")
+                else:
+                    logging.info(f"Successfully executed skill action '{action}' for {skill_conf}")
+
+            except subprocess.TimeoutExpired:
+                logging.error(f"Skill action '{action}' timed out for {skill_conf}.")
+            except Exception as e:
+                logging.error(f"Failed to execute skill action '{action}' for {skill_conf}: {e}")
 
     def _install_extensions(self, extensions: dict | list):
         """Installs/Syncs specified extensions using gemini-cli."""
@@ -465,12 +541,145 @@ class GeminiCliGenerator(QueryGenerator):
 
         command.extend([
             "--output-format",
-            "json",
+            "stream-json",
             "--prompt",
             cli_cmd.prompt,
         ])
 
-        return self._execute_cli_command(command, env=env)
+        result = self._execute_cli_command(command, env=env)
+        if result.returncode == 0 and result.stdout:
+            result.stdout = self._parse_stream_json(result.stdout)
+            
+        return result
+
+    def _parse_stream_json(self, stream_output: str) -> str:
+        import dateutil.parser
+        
+        final_obj = {"session_id": "", "response": "", "stats": {}}
+        tool_uses = {}
+        tool_results = {}
+        model_name = "gemini-2.5-flash"
+        
+        for line in stream_output.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+                t = event.get("type")
+                if t == "init":
+                    final_obj["session_id"] = event.get("session_id", "")
+                    model_name = event.get("model", model_name)
+                elif t == "message" and event.get("role") == "assistant":
+                    final_obj["response"] += event.get("content", "")
+                elif t == "tool_use":
+                    tool_id = event.get("tool_id")
+                    if tool_id:
+                        tool_uses[tool_id] = event
+                elif t == "tool_result":
+                    tool_id = event.get("tool_id")
+                    if tool_id:
+                        tool_results[tool_id] = event
+                elif t == "result":
+                    s = event.get("stats", {})
+                    total_duration = s.get("duration_ms", 0)
+                    
+                    models = {
+                        model_name: {
+                            "api": {
+                                "totalRequests": 1,
+                                "totalErrors": 0,
+                                "totalLatencyMs": total_duration
+                            },
+                            "tokens": {
+                                "input": s.get("input_tokens", 0),
+                                "prompt": s.get("input_tokens", 0),
+                                "candidates": s.get("output_tokens", 0),
+                                "total": s.get("total_tokens", 0),
+                                "cached": s.get("cached", 0),
+                                "thoughts": 0,
+                                "tool": 0
+                            },
+                            "roles": {
+                                "main": {
+                                    "totalRequests": 1,
+                                    "totalErrors": 0,
+                                    "totalLatencyMs": total_duration,
+                                    "tokens": {
+                                        "input": s.get("input_tokens", 0),
+                                        "prompt": s.get("input_tokens", 0),
+                                        "candidates": s.get("output_tokens", 0),
+                                        "total": s.get("total_tokens", 0),
+                                        "cached": s.get("cached", 0),
+                                        "thoughts": 0,
+                                        "tool": 0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    final_obj["stats"]["models"] = models
+                    
+                    tools_stats = {
+                        "totalCalls": len(tool_uses),
+                        "totalSuccess": sum(1 for tr in tool_results.values() if tr.get("status") == "success"),
+                        "totalFail": sum(1 for tr in tool_results.values() if tr.get("status") != "success"),
+                        "totalDurationMs": 0,
+                        "decisions": {
+                            "accept": len(tool_uses),
+                            "reject": 0,
+                            "modify": 0,
+                            "auto_accept": len(tool_uses)
+                        },
+                        "byName": {}
+                    }
+                    
+                    for tid, tu in tool_uses.items():
+                        tname = tu.get("tool_name", "unknown")
+                        if tname not in tools_stats["byName"]:
+                            tools_stats["byName"][tname] = {
+                                "count": 0,
+                                "success": 0,
+                                "fail": 0,
+                                "durationMs": 0,
+                                "parameters": [],
+                                "decisions": {
+                                    "accept": 0,
+                                    "reject": 0,
+                                    "modify": 0,
+                                    "auto_accept": 0
+                                }
+                            }
+                        
+                        tstat = tools_stats["byName"][tname]
+                        tstat["count"] += 1
+                        tstat["parameters"].append(tu.get("parameters", {}))
+                        tstat["decisions"]["accept"] += 1
+                        tstat["decisions"]["auto_accept"] += 1
+                        
+                        tr = tool_results.get(tid)
+                        duration = 0
+                        if tr:
+                            if tr.get("status") == "success":
+                                tstat["success"] += 1
+                            else:
+                                tstat["fail"] += 1
+                                
+                            try:
+                                t1 = dateutil.parser.isoparse(tu["timestamp"])
+                                t2 = dateutil.parser.isoparse(tr["timestamp"])
+                                duration = int((t2 - t1).total_seconds() * 1000)
+                            except Exception:
+                                pass
+                                
+                        tstat["durationMs"] += duration
+                        tools_stats["totalDurationMs"] += duration
+                        
+                    final_obj["stats"]["tools"] = tools_stats
+            except Exception as e:
+                logging.debug(f"Failed to parse stream JSON line: {e}")
+                
+        return json.dumps(final_obj, indent=2)
 
     def parse_response(self, stdout: str) -> dict:
         if not stdout:
