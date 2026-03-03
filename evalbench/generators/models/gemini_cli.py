@@ -278,77 +278,7 @@ class GeminiCliGenerator(QueryGenerator):
             return False
 
 
-    def _setup_skills(self, skills: list):
-        """Sets up skills by linking, installing, enabling, disabling, or uninstalling using gemini-cli."""
-        if not skills:
-            return
 
-        install_env = os.environ.copy()
-        install_env.update(self.env)
-        
-        gemini_settings_path = os.path.join(self.gemini_home, "settings.json")
-        install_env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = gemini_settings_path
-
-        for skill in skills:
-            # Handle backward compatibility: strings are treated as link paths by default
-            if isinstance(skill, str):
-                skill_conf = {"action": "link", "path": skill}
-            else:
-                skill_conf = skill
-
-            action = skill_conf.get("action", "link")
-            scope = skill_conf.get("scope")
-            
-            cmd = ['npm', 'exec', '--yes', self.gemini_cli_version, '--', 'skills', action]
-
-            if action in ["link", "install"]:
-                target = skill_conf.get("url") or skill_conf.get("path")
-                if not target:
-                    logging.error(f"Failed to {action} skill: Missing 'url' or 'path' in config: {skill_conf}")
-                    continue
-                cmd.append(target)
-                
-                if action == "install" and skill_conf.get("url") and skill_conf.get("path"):
-                    cmd.extend(["--path", skill_conf.get("path")])
-                
-                # Links and installs require consent in typical environments
-                cmd.append('--consent')
-            
-            elif action in ["enable", "disable", "uninstall"]:
-                name = skill_conf.get("name")
-                if not name:
-                    logging.error(f"Failed to {action} skill: Missing 'name' in config: {skill_conf}")
-                    continue
-                cmd.append(name)
-            else:
-                logging.error(f"Unknown skill action '{action}' in config: {skill_conf}")
-                continue
-
-            if scope:
-                cmd.extend(["--scope", scope])
-
-            logging.info(f"Executing skill command: {' '.join(cmd)}")
-            try:
-                # Force interactive consent prompts to safely pass or fail via input
-                result = subprocess.run(
-                    cmd,
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                    input='\n' * 5,
-                    env=install_env,
-                    timeout=300
-                )
-
-                if result.returncode != 0:
-                    logging.error(f"Failed to execute skill {action}. Command: {' '.join(cmd)}\nOutput: {result.stdout}\nError: {result.stderr}")
-                else:
-                    logging.info(f"Successfully executed skill action '{action}' for {skill_conf}")
-
-            except subprocess.TimeoutExpired:
-                logging.error(f"Skill action '{action}' timed out for {skill_conf}.")
-            except Exception as e:
-                logging.error(f"Failed to execute skill action '{action}' for {skill_conf}: {e}")
 
     def _install_extensions(self, extensions: dict | list):
         """Installs/Syncs specified extensions using gemini-cli."""
