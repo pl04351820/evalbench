@@ -145,17 +145,17 @@ class GeminiCliGenerator(QueryGenerator):
         """Copies specified skills from real home to fake home."""
         if not skills:
             return
-            
+
         real_skills_dir = os.path.join(self.real_home, ".gemini", "skills")
-        
+
         for skill_name in skills:
             real_skill_path = os.path.join(real_skills_dir, skill_name)
             fake_skill_path = os.path.join(self.skills_dir, skill_name)
-            
+
             if not os.path.exists(real_skill_path):
                 logging.warning(f"Requested skill '{skill_name}' not found at {real_skill_path}.")
                 continue
-                
+
             logging.info(f"Syncing skill: {skill_name}")
             if os.path.exists(fake_skill_path):
                 shutil.rmtree(fake_skill_path)
@@ -276,9 +276,6 @@ class GeminiCliGenerator(QueryGenerator):
         except Exception as e:
             logging.error(f"Failed to verify MCP server {server_name}: {e}")
             return False
-
-
-
 
     def _install_extensions(self, extensions: dict | list):
         """Installs/Syncs specified extensions using gemini-cli."""
@@ -504,17 +501,17 @@ class GeminiCliGenerator(QueryGenerator):
         result = self._execute_cli_command(command, env=env)
         if result.returncode == 0 and result.stdout:
             result.stdout = self._parse_stream_json(result.stdout)
-            
+
         return result
 
     def _parse_stream_json(self, stream_output: str) -> str:
         import dateutil.parser
-        
+
         final_obj = {"session_id": "", "response": "", "stats": {}}
         tool_uses = {}
         tool_results = {}
         model_name = "gemini-2.5-flash"
-        
+
         for line in stream_output.split('\n'):
             line = line.strip()
             if not line:
@@ -538,7 +535,7 @@ class GeminiCliGenerator(QueryGenerator):
                 elif t == "result":
                     s = event.get("stats", {})
                     total_duration = s.get("duration_ms", 0)
-                    
+
                     models = {
                         model_name: {
                             "api": {
@@ -574,7 +571,7 @@ class GeminiCliGenerator(QueryGenerator):
                         }
                     }
                     final_obj["stats"]["models"] = models
-                    
+
                     tools_stats = {
                         "totalCalls": len(tool_uses),
                         "totalSuccess": sum(1 for tr in tool_results.values() if tr.get("status") == "success"),
@@ -588,7 +585,7 @@ class GeminiCliGenerator(QueryGenerator):
                         },
                         "byName": {}
                     }
-                    
+
                     for tid, tu in tool_uses.items():
                         tname = tu.get("tool_name", "unknown")
                         if tname not in tools_stats["byName"]:
@@ -605,13 +602,13 @@ class GeminiCliGenerator(QueryGenerator):
                                     "auto_accept": 0
                                 }
                             }
-                        
+
                         tstat = tools_stats["byName"][tname]
                         tstat["count"] += 1
                         tstat["parameters"].append(tu.get("parameters", {}))
                         tstat["decisions"]["accept"] += 1
                         tstat["decisions"]["auto_accept"] += 1
-                        
+
                         tr = tool_results.get(tid)
                         duration = 0
                         if tr:
@@ -619,21 +616,21 @@ class GeminiCliGenerator(QueryGenerator):
                                 tstat["success"] += 1
                             else:
                                 tstat["fail"] += 1
-                                
+
                             try:
                                 t1 = dateutil.parser.isoparse(tu["timestamp"])
                                 t2 = dateutil.parser.isoparse(tr["timestamp"])
                                 duration = int((t2 - t1).total_seconds() * 1000)
                             except Exception:
                                 pass
-                                
+
                         tstat["durationMs"] += duration
                         tools_stats["totalDurationMs"] += duration
-                        
+
                     final_obj["stats"]["tools"] = tools_stats
             except Exception as e:
                 logging.debug(f"Failed to parse stream JSON line: {e}")
-                
+
         return json.dumps(final_obj, indent=2)
 
     def parse_response(self, stdout: str) -> dict:
