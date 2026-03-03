@@ -7,6 +7,6 @@ env:
   GEMINI_API_MODEL: "gemini-2.5-flash"
   GEMINI_MODEL: "gemini-2.5-flash"
 setup:  
-  kills:
+  skills:
     - action: link
       path: "/usr/local/google/home/prernakakkar/senseai/cloud-sql-postgresql/skills/cloudsql-postgres-admin"
