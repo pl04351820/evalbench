@@ -141,28 +141,68 @@ class GeminiCliGenerator(QueryGenerator):
         logging.info(
             f"NPM authentication updated successfully at {npmrc_file}")
 
-    def _setup_skills(self, skills: list[str]):
-        """Copies specified skills from real home to fake home."""
+    def _setup_skills(self, skills: list):
+        """Sets up skills by copying them or performing specified actions."""
         if not skills:
             return
 
         real_skills_dir = os.path.join(self.real_home, ".gemini", "skills")
 
-        for skill_name in skills:
-            real_skill_path = os.path.join(real_skills_dir, skill_name)
-            fake_skill_path = os.path.join(self.skills_dir, skill_name)
+        setup_env = os.environ.copy()
+        setup_env.update(self.env)
+        
+        for skill_config in skills:
+            if isinstance(skill_config, str):
+                skill_name = skill_config
+                real_skill_path = os.path.join(real_skills_dir, skill_name)
+                fake_skill_path = os.path.join(self.skills_dir, skill_name)
 
-            if not os.path.exists(real_skill_path):
-                logging.warning(f"Requested skill '{skill_name}' not found at {real_skill_path}.")
-                continue
+                if not os.path.exists(real_skill_path):
+                    logging.warning(f"Requested skill '{skill_name}' not found at {real_skill_path}.")
+                    continue
 
-            logging.info(f"Syncing skill: {skill_name}")
-            if os.path.exists(fake_skill_path):
-                shutil.rmtree(fake_skill_path)
-            try:
-                shutil.copytree(real_skill_path, fake_skill_path)
-            except Exception as e:
-                logging.error(f"Failed to copy skill {skill_name}: {e}")
+                logging.info(f"Syncing skill: {skill_name}")
+                if os.path.exists(fake_skill_path):
+                    shutil.rmtree(fake_skill_path)
+                try:
+                    shutil.copytree(real_skill_path, fake_skill_path)
+                except Exception as e:
+                    logging.error(f"Failed to copy skill {skill_name}: {e}")
+                    
+            elif isinstance(skill_config, dict):
+                action = skill_config.get("action")
+                path = skill_config.get("path")
+                name = skill_config.get("name")
+                
+                cmd = None
+                if action == "link" and path:
+                    logging.info(f"Linking skill from path: {path}")
+                    cmd = ["npm", "exec", "--yes", self.gemini_cli_version, "--", "skills", "link", path, "--consent"]
+                elif action == "install" and (path or name):
+                    target = path if path else name
+                    logging.info(f"Installing skill: {target}")
+                    cmd = ["npm", "exec", "--yes", self.gemini_cli_version, "--", "skills", "install", target, "--consent"]
+                elif action == "enable" and name:
+                    logging.info(f"Enabling skill: {name}")
+                    cmd = ["npm", "exec", "--yes", self.gemini_cli_version, "--", "skills", "enable", name]
+                elif action == "disable" and name:
+                    logging.info(f"Disabling skill: {name}")
+                    cmd = ["npm", "exec", "--yes", self.gemini_cli_version, "--", "skills", "disable", name]
+                elif action == "uninstall" and name:
+                    logging.info(f"Uninstalling skill: {name}")
+                    cmd = ["npm", "exec", "--yes", self.gemini_cli_version, "--", "skills", "uninstall", name]
+                else:
+                    logging.warning(f"Unsupported or malformed skill config: {skill_config}")
+
+                if cmd:
+                    try:
+                        result = subprocess.run(
+                            cmd, check=False, capture_output=True, text=True, env=setup_env
+                        )
+                        if result.returncode != 0:
+                            logging.error(f"Failed to execute skill action '{action}'. Output: {result.stdout}, Error: {result.stderr}")
+                    except Exception as e:
+                        logging.error(f"Failed to execute skill action '{action}': {e}")
 
     def _setup_mcp_servers(self, mcp_servers_config: dict, settings_path: str):
         """Configures MCP servers in the settings file and verifies connectivity."""
