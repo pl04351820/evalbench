@@ -150,7 +150,7 @@ class GeminiCliGenerator(QueryGenerator):
 
         setup_env = os.environ.copy()
         setup_env.update(self.env)
-        
+
         for skill_config in skills:
             if isinstance(skill_config, str):
                 skill_name = skill_config
@@ -168,12 +168,12 @@ class GeminiCliGenerator(QueryGenerator):
                     shutil.copytree(real_skill_path, fake_skill_path)
                 except Exception as e:
                     logging.error(f"Failed to copy skill {skill_name}: {e}")
-                    
+
             elif isinstance(skill_config, dict):
                 action = skill_config.get("action")
                 path = skill_config.get("path")
                 name = skill_config.get("name")
-                
+
                 cmd = None
                 if action == "link" and path:
                     logging.info(f"Linking skill from path: {path}")
