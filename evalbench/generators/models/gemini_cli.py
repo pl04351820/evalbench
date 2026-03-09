@@ -207,7 +207,7 @@ class GeminiCliGenerator(QueryGenerator):
                     except Exception as e:
                         logging.error(f"Failed to execute skill action '{action}': {e}")
 
-    def _setup_mcp_servers(self, mcp_servers_config: dict, settings_path: str):
+    def _setup_mcp_servers(self, mcp_servers_config: dict, settings_path: str, verify_tools: bool = True):
         """Configures MCP servers in the settings file and verifies connectivity."""
         current_settings = {}
         if os.path.exists(settings_path):
