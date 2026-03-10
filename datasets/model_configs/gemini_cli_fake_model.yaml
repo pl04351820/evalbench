@@ -9,7 +9,7 @@ setup:
     "cloud-sql":
       command: "python"
       args:
-        - "/usr/local/google/home/prernakakkar/senseai/evalbench/evalbench/util/fake_mcp_server.py"
+        - "evalbench/util/fake_mcp_server.py"
         - "--server-name"
         - "cloud-sql"
         - "--config"
