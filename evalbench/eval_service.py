@@ -125,16 +125,16 @@ class EvalServicer(eval_service_pb2_grpc.EvalServiceServicer):
         evaluator = get_orchestrator(
             config, db_configs, setup_config, report_progress=True
         )
-        
+
         loop = asyncio.get_event_loop()
-        
+
         # Offload blocking evaluate call to a thread pool
         logging.info("Offloading evaluation to thread pool...")
         await loop.run_in_executor(None, evaluator.evaluate, dataset)
 
         job_id, run_time, results_tf, scores_tf = evaluator.process()
         reporters = get_reporters(config.get("reporting"), job_id, run_time)
-        
+
         # Offload blocking results processing to a thread pool
         logging.info("Offloading results processing to thread pool...")
         await loop.run_in_executor(
@@ -149,7 +149,7 @@ class EvalServicer(eval_service_pb2_grpc.EvalServiceServicer):
             model_config,
             db_configs,
         )
-        
+
         logging.info(
             f"Finished Job ID {job_id} Thread count:{threading.active_count()}"
         )

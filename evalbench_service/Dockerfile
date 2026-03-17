@@ -24,7 +24,6 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | b
 RUN . ~/.bashrc && nvm install --lts
 RUN uv pip install --system --break-system-packages grpcio-tools
 
-ENV BUILD_TIME=1773765666
 COPY . evalbench
 WORKDIR evalbench
 RUN uv sync
