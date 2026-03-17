@@ -25,13 +25,22 @@ CLOUD_RUN = os.getenv("CLOUD_RUN", False)
 PORT = os.getenv("PORT", 50051)
 _cleanup_coroutines = []
 
+class UncloseableStream:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+    def flush(self):
+        self.stream.flush()
+    def close(self):
+        pass # Do not close the underlying stream
 
 async def _serve():
     """Starts the server."""
-    # Ensure logging is correctly configured for the current loop/threads
-    logging.get_absl_handler().python_handler.stream = sys.stdout
+    # Prevent stream closing
+    logging.get_absl_handler().python_handler.stream = UncloseableStream(sys.stdout)
     logging.info("Starting server")
-
+    
     interceptors = [
         SessionManagerInterceptor("SessionManagerInterceptor"),
     ]
@@ -60,10 +69,9 @@ async def _serve():
 def main(argv: Sequence[str]) -> None:
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
-
-    # Initialize ABSL logging and sync with standard logging
+    
     logging.use_absl_handler()
-
+    
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
