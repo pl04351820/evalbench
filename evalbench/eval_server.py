@@ -31,7 +31,7 @@ async def _serve():
     # Ensure logging is correctly configured for the current loop/threads
     logging.get_absl_handler().python_handler.stream = sys.stdout
     logging.info("Starting server")
-    
+
     interceptors = [
         SessionManagerInterceptor("SessionManagerInterceptor"),
     ]
@@ -60,10 +60,10 @@ async def _serve():
 def main(argv: Sequence[str]) -> None:
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
-    
+
     # Initialize ABSL logging and sync with standard logging
     logging.use_absl_handler()
-    
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
