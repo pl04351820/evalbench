@@ -12,6 +12,7 @@ from eval_service import EvalServicer
 from eval_service import SessionManagerInterceptor
 from evalproto import eval_service_pb2_grpc
 import os
+import sys
 
 _LOCALHOST = flags.DEFINE_bool(
     "localhost",
@@ -27,7 +28,10 @@ _cleanup_coroutines = []
 
 async def _serve():
     """Starts the server."""
+    # Ensure logging is correctly configured for the current loop/threads
+    logging.get_absl_handler().python_handler.stream = sys.stdout
     logging.info("Starting server")
+    
     interceptors = [
         SessionManagerInterceptor("SessionManagerInterceptor"),
     ]
@@ -36,9 +40,6 @@ async def _serve():
     servicer = EvalServicer()
     eval_service_pb2_grpc.add_EvalServiceServicer_to_server(servicer, server)
     if _LOCALHOST.value or CLOUD_RUN:
-        # --localhost is for testing purpose. Use insecure_server_credentials()
-        # because local creds does not work between a client running on the host
-        # and a server running inside a container on the same host.
         logging.info("Using localhost server insecure credentials per flag")
         server.add_insecure_port("[::]:%s" % PORT)
     else:
@@ -59,6 +60,10 @@ async def _serve():
 def main(argv: Sequence[str]) -> None:
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
+    
+    # Initialize ABSL logging and sync with standard logging
+    logging.use_absl_handler()
+    
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
