@@ -23,7 +23,13 @@ spec:
           value: pantheon
         imagePullPolicy: Always
         name: evalbench-eval
-        # go/gke-shipshape
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
         securityContext:
           allowPrivilegeEscalation: true
           capabilities:
@@ -37,6 +43,7 @@ spec:
         ports:
         - protocol: TCP
           containerPort: 50051
+          name: grpc
         volumeMounts:
         - mountPath: /tmp
           name: tmp-volume

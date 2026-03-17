@@ -24,6 +24,7 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | b
 RUN . ~/.bashrc && nvm install --lts
 RUN uv pip install --system --break-system-packages grpcio-tools
 
+ENV BUILD_TIME=1773765666
 COPY . evalbench
 WORKDIR evalbench
 RUN uv sync
@@ -31,11 +32,12 @@ RUN uv sync
 RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN make proto -f ./Makefile
 RUN mkdir /tmp_session_files
+RUN cp /evalbench/evalbench_service/supervisord.conf /evalbench/supervisord.conf
 RUN chown -R 65532:65532 /evalbench /tmp /tmp_session_files
 
 RUN ln -s /root/.nvm/versions/node/v24.14.0/bin/npm /usr/bin/npm
 RUN ln -s /root/.nvm/versions/node/v24.14.0/bin/node /usr/bin/node
 RUN ln -s /root/.nvm/versions/node/v24.14.0/bin/npx /usr/bin/npx
-RUN cp /evalbench/evalbench_service/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+
+CMD ["/usr/bin/supervisord", "-c", "/evalbench/supervisord.conf"]
 EXPOSE 50051 3000
