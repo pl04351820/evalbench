@@ -111,7 +111,7 @@ test:
 	@nox
 
 style:
-	@pycodestyle --exclude=evalbench/lib,evalbench/lib64 --max-line-length=120 evalbench
+	@pycodestyle --exclude=evalbench/lib,evalbench/lib64,evalproto evalbench
 
 run:
 	@./run_service.sh
