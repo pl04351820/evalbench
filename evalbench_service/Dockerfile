@@ -3,6 +3,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 ENV PYTHONPATH=/evalbench/evalbench/evalproto:.
+ENV HOME=/home/evalbench
+ENV CLOUDSDK_CONFIG=/home/evalbench/.config/gcloud
+ENV GCLOUD_CONFIG=/home/evalbench/.config/gcloud
 
 RUN \
   apt-get update -y && \
@@ -17,6 +20,11 @@ RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -
 
 RUN uv pip install --system --break-system-packages grpcio-tools
 
+# Create home directory and add user to passwd for tools that require it
+RUN mkdir -p /home/evalbench && \
+    echo "evalbench:x:65532:65532:evalbench:/home/evalbench:/bin/bash" >> /etc/passwd && \
+    chown -R 65532:65532 /home/evalbench
+
 COPY . evalbench
 WORKDIR evalbench
 RUN uv sync
@@ -25,7 +33,7 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN make proto -f ./Makefile
 RUN mkdir /tmp_session_files
 RUN cp /evalbench/evalbench_service/supervisord.conf /evalbench/supervisord.conf
-RUN chown -R 65532:65532 /evalbench /tmp /tmp_session_files
+RUN chown -R 65532:65532 /evalbench /tmp /tmp_session_files /home/evalbench
 
 CMD ["/usr/bin/supervisord", "-c", "/evalbench/supervisord.conf"]
 EXPOSE 50051 3000
