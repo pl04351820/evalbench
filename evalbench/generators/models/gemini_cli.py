@@ -5,6 +5,7 @@ import json
 import logging
 import re
 import shutil
+import sys
 
 
 class CLICommand:
@@ -25,7 +26,13 @@ class GeminiCliGenerator(QueryGenerator):
 
         self.real_home = os.environ.get('HOME', os.path.expanduser('~'))
 
-        self.fake_home = os.path.abspath(os.path.join('.venv', 'fake_home'))
+        # If running via eval_server.py (gRPC), use session-specific path in shared volume
+        if sys.argv[0].endswith("eval_server.py"):
+            session_id = querygenerator_config.get("session_id", "default")
+            self.fake_home = os.path.join("/tmp_session_files", session_id, "fake_home")
+        else:
+            self.fake_home = os.path.abspath(os.path.join('.venv', 'fake_home'))
+
         self.gemini_home = os.path.join(self.fake_home, '.gemini')
         self.extensions_dir = os.path.join(self.gemini_home, 'extensions')
         self.skills_dir = os.path.join(self.gemini_home, 'skills')
@@ -295,13 +302,12 @@ class GeminiCliGenerator(QueryGenerator):
                     if "response" in envelope:
                         response_text = envelope["response"].strip()
 
-                        if response_text.startswith('```'):
-                            lines = response_text.split('\n')
-                            if lines and lines[0].startswith('```'):
-                                lines = lines[1:]
-                            if lines and lines[-1].startswith('```'):
-                                lines = lines[:-1]
-                            response_text = '\n'.join(lines).strip()
+                        if response_text.startswith('\`\`\`') or response_text.startswith('"'):
+                             # Robust JSON parsing
+                             import re
+                             json_match = re.search(r"\\[.*\\]", response_text, re.DOTALL)
+                             if json_match:
+                                 response_text = json_match.group(0)
 
                         tools = json.loads(response_text)
 

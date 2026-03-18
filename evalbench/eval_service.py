@@ -117,9 +117,13 @@ class EvalServicer(eval_service_pb2_grpc.EvalServiceServicer):
         request_iterator: AsyncIterator[eval_request_pb2.EvalInputRequest],
         context: grpc.ServicerContext,
     ) -> eval_response_pb2.EvalResponse:
-        session = SESSIONMANAGER.get_session(rpc_id_var.get())
+        session_id = rpc_id_var.get()
+        session = SESSIONMANAGER.get_session(session_id)
         config, db_configs, model_config, setup_config = load_session_configs(
             session)
+        if config is not None:
+            config["session_id"] = session_id
+            
         dataset = await get_dataset_from_request(request_iterator)
 
         evaluator = get_orchestrator(
