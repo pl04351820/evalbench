@@ -7,7 +7,7 @@ import sys
 class CsvReporter(Reporter):
     def __init__(self, reporting_config, job_id, run_time):
         super().__init__(reporting_config, job_id, run_time)
-        
+
         # If running via eval_server.py (gRPC), force output to shared volume
         if sys.argv[0].endswith("eval_server.py"):
             self.output_dir = "/tmp_session_files/results"
