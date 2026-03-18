@@ -304,7 +304,6 @@ class GeminiCliGenerator(QueryGenerator):
 
                         if response_text.startswith('\`\`\`') or response_text.startswith('"'):
                              # Robust JSON parsing
-                             import re
                              json_match = re.search(r"\\[.*\\]", response_text, re.DOTALL)
                              if json_match:
                                  response_text = json_match.group(0)
