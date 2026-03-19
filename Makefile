@@ -33,23 +33,26 @@ build-test:
 	$(CONTAINER_ENGINE) build  -t evalbench-test -f evalbench_service/Dockerfile .
 
 container:
-	$(CONTAINER_ENGINE) run --rm --name=evalbench_container \
+	$(CONTAINER_ENGINE) stop evalbench_server || true
+	$(CONTAINER_ENGINE) rm evalbench_server || true
+	$(CONTAINER_ENGINE) run --rm --name=evalbench_server \
 		$(if $(filter podman,$(CONTAINER_ENGINE)),--sysctl net.ipv6.conf.all.disable_ipv6=1) \
 		$(if $(filter docker,$(CONTAINER_ENGINE)),--net=host) \
-		-v ~/.config/gcloud:/root/.config/gcloud \
+		-v ~/.config/gcloud:/home/evalbench/.config/gcloud \
 		-e GOOGLE_CLOUD_PROJECT=cloud-db-nl2sql \
 		--cap-add=SYS_PTRACE	\
-		-e CLOUD_RUN=True \
 		-p 3000:3000 \
 		-p 50051:50051 \
 		-e TYPE=$(TYPE) evalbench:latest
 
 shell:
-	$(CONTAINER_ENGINE) run -ti --rm --name=evalbench_container \
+	$(CONTAINER_ENGINE) stop evalbench_server || true
+	$(CONTAINER_ENGINE) rm evalbench_server || true
+	$(CONTAINER_ENGINE) run -ti --rm --name=evalbench_server \
 		$(if $(filter podman,$(CONTAINER_ENGINE)),--sysctl net.ipv6.conf.all.disable_ipv6=1) \
 		$(if $(filter docker,$(CONTAINER_ENGINE)),--net=host) \
 		--cap-add=SYS_PTRACE \
-		-v ~/.config/gcloud:/root/.config/gcloud \
+		-v ~/.config/gcloud:/home/evalbench/.config/gcloud \
 		-v $(PWD)/requirements.txt:/evalbench/requirements.txt \
 		-v $(PWD)/evalbench:/evalbench/evalbench \
 		-v $(PWD)/viewer:/evalbench/viewer \
@@ -73,6 +76,7 @@ deploy:
 	kubectl apply -f evalbench_service/k8s/ksa.yaml
 	kubectl apply -f evalbench_service/k8s/service.yaml
 	kubectl apply -f evalbench_service/k8s/evalbench.yaml
+	kubectl apply -f evalbench_service/k8s/hpa.yaml
 	kubectl apply -f evalbench_service/k8s/vertical-autoscale.yaml
 
 deploy-test:
@@ -111,7 +115,11 @@ test:
 	@nox
 
 style:
-	@pycodestyle --exclude=evalbench/lib,evalbench/lib64 --max-line-length=120 evalbench
+	@pycodestyle --exclude=evalbench/lib,evalbench/lib64,evalproto evalbench
 
 run:
 	@./run_service.sh
+
+binary:
+	uv pip install pyinstaller
+	uv run pyinstaller pyinstaller.spec

@@ -6,9 +6,6 @@ import json
 import sys
 import os
 
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../..")))
-
 
 # ---------------------------------------------------------------------------
 # Shared fixture
@@ -222,6 +219,7 @@ class TestMongoDBLegacyFormat:
                 {"$count": "total_users"},
             ],
         })
+
         result, _, error = client.execute(query)
         assert error is None
         assert result[0]["total_users"] == 2

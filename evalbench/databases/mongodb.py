@@ -28,6 +28,9 @@ class MongoDB(DB):
         )
         self.db = self.client[self.db_name]
 
+    def ensure_database_exists(self, database_name: str) -> None:
+        pass
+
     def close_connections(self):
         self.client.close()
 
