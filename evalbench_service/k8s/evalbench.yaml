@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: evalbench-namespace
+  name: evalbench-eval-server-deploy
+  labels:
+    app: evalbench-eval-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: evalbench-eval-server
+  template:
+    metadata:
+      labels:
+        app: evalbench-eval-server
+      annotations:
+        gke-gcsfuse/volumes: "true"
+    spec:
+      serviceAccountName: evalbench-ksa
+      containers:
+      - image: us-central1-docker.pkg.dev/cloud-db-nl2sql/evalbench/eval_server:latest
+        env:
+        - name: EVAL_DB_PASSWORD
+          value: pantheon
+        - name: UV_CACHE_DIR
+          value: /tmp/uv-cache
+        - name: EVAL_GCP_PROJECT_ID
+          value: cloud-db-nl2sql
+        - name: GOOGLE_CLOUD_PROJECT
+          value: cloud-db-nl2sql
+        - name: EVAL_GCP_PROJECT_REGION
+          value: us-central1
+        imagePullPolicy: Always
+        name: evalbench-eval
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsUser: 65532
+          runAsGroup: 65532
+          seccompProfile:
+            type: RuntimeDefault
+        ports:
+        - protocol: TCP
+          containerPort: 50051
+          name: grpc
+        - protocol: TCP
+          containerPort: 8000
+          name: metrics
+        - protocol: TCP
+          containerPort: 3000
+          name: ui
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+        - mountPath: /tmp_session_files
+          name: gcs-fuse-csi-vol
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      - name: gcs-fuse-csi-vol
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: evalbench-sessions-cloud-db-nl2sql
+            mountOptions: "implicit-dirs,uid=65532,gid=65532"

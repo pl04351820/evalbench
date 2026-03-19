@@ -1,0 +1,79 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Server",
+      "type": "debugpy",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/evalbench:${workspaceFolder}/evalbench/evalproto",
+        "EVAL_GCP_PROJECT_ID": "cloud-db-nl2sql",
+        "EVAL_GCP_PROJECT_REGION": "us-central1"
+      },
+      "args": [
+        "--localhost"
+      ],
+      "request": "launch",
+      "program": "${workspaceFolder}/evalbench/eval_server.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Client",
+      "type": "debugpy",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/evalbench:${workspaceFolder}/evalbench/evalproto"
+      },
+      "request": "launch",
+      "program": "${workspaceFolder}/evalbench/client/eval_client.py",
+      "args": [
+        "--endpoint",
+        "local",
+        "--experiment",
+        "${workspaceFolder}/datasets/bat/example_run_config.yaml"
+      ],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run bat-interact",
+      "type": "debugpy",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/evalbench:${workspaceFolder}/evalbench/evalproto",
+        "EVAL_GCP_PROJECT_ID": "cloud-db-nl2sql",
+        "EVAL_GCP_PROJECT_REGION": "us-central1"
+      },
+      "request": "launch",
+      "program": "${workspaceFolder}/evalbench/evalbench.py",
+      "args": [
+        "--experiment_config",
+        "${workspaceFolder}/datasets/bat-interact/example_run_config.yaml"
+      ],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run bat",
+      "type": "debugpy",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/evalbench:${workspaceFolder}/evalbench/evalproto",
+        "EVAL_GCP_PROJECT_ID": "cloud-db-nl2sql",
+        "EVAL_GCP_PROJECT_REGION": "us-central1"
+      },
+      "request": "launch",
+      "program": "${workspaceFolder}/evalbench/evalbench.py",
+      "args": [
+        "--experiment_config",
+        "${workspaceFolder}/datasets/bat/example_run_config.yaml"
+      ],
+      "console": "integratedTerminal"
+    }
+  ]
+}

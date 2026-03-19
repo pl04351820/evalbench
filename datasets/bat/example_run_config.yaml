@@ -1,0 +1,52 @@
+############################################################
+### Dataset / Eval Items
+############################################################
+# The JSON list of prompts / golden SQLs and eval attributes for the run
+dataset_config: datasets/bat/prompts.json
+### Database Info
+# List of paths to the YAML files that provide the database connection details
+database_configs:
+ - datasets/bat/db_configs/sqlite.yaml
+# The dialects that the dataset_config will be filtered by. If not provided, 
+# all dialects found in the dataset_config json file will be used.
+dialects:
+ - sqlite
+query_types:
+ - dql
+#
+#
+############################################################
+### Prompt and Generation Modules
+############################################################
+# The YAML config for the model to be used for generation.
+model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
+# The prompt generator module id for prompt generation.
+prompt_generator: 'SQLGenBasePromptGenerator'
+#
+#
+############################################################
+### Optional - Setup / Teardown related configs (Required for testing DDL)
+############################################################
+# Used for setup / teardown, the directory path to the sql files used for setting up
+# / tearing down a database instance. This is required for running DDL
+setup_directory: datasets/bat/setup
+#
+#
+############################################################
+### Scorer Related Configs - See /scorers directory for each scorer.
+############################################################
+scorers:
+  exact_match: null
+  llmrater:
+    model_config: datasets/model_configs/gemini_2.5_pro_model.yaml
+  returned_sql: null
+  set_match: null
+  executable_sql: null
+#
+#
+############################################################
+### Reporting Related Configs
+############################################################
+reporting:
+  csv:
+    output_directory: 'results'

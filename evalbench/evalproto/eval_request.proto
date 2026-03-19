@@ -1,0 +1,74 @@
+edition = "2023";
+
+package cloud_databases_eval_proto;
+
+import "google/protobuf/duration.proto";
+
+option java_multiple_files = true;
+
+message PingRequest {
+  string id = 1;
+}
+
+message DialectBasedSQLStatements {
+  repeated string sql_statements = 1;
+}
+
+message EvalInputRequest {
+  int64 id = 1;
+  string nl_prompt = 2;
+  string query_type = 3;
+  string database = 4;
+  repeated string dialects = 5;
+  map<string, DialectBasedSQLStatements> golden_sql = 6;
+  map<string, DialectBasedSQLStatements> eval_query = 7;
+  map<string, DialectBasedSQLStatements> setup_sql = 8;
+  map<string, DialectBasedSQLStatements> cleanup_sql = 9;
+  repeated string tags = 10;
+  map<string, string> other = 11; 
+  string sql_generator_error = 12;
+  float sql_generator_time = 13;
+  string generated_sql = 14;
+  string job_id = 15;
+  string trace_id = 16;
+  string payload = 17;
+}
+
+message UserAction {
+  string action_type = 1;
+  string prompt = 2;
+  string file_path = 3;
+  int64 cursor_start = 4;
+  int64 cursor_end = 5;
+}
+
+message EvalCodeInputRequest {
+  string id = 1;
+  string patch = 2;
+  UserAction user_action = 3;
+  string verification_command = 4;
+  string description = 5;
+  // TODO: Add database_context if required in future
+
+  // TODO: Modify this as per GCA RAG
+  string application_context = 6;
+  string current_file_content = 7;
+  string generated_code = 8;
+  google.protobuf.Duration dbcodegen_time = 9;
+  string dbcodegen_error = 10;
+  string job_id = 11; 
+  string golden_code = 12;
+  string build_command = 13;
+}
+
+message EvalInteractInputRequest {
+  int64 id = 1;
+  string amb_user_query = 2;
+  string query_type = 3;
+  string database = 4;
+  repeated string dialects = 5;
+  repeated string tags = 6;
+  string payload = 7; 
+  string job_id = 8;
+  string trace_id = 9;
+}

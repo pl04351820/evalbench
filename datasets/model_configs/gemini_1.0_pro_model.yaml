@@ -1,0 +1,3 @@
+generator: gcp_vertex_gemini
+vertex_model: gemini-1.0-pro
+base_prompt: ""
