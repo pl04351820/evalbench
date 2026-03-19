@@ -65,7 +65,7 @@ class MongoDB(DB):
             # Extract args between the outermost ( and last )
             open_paren = query_str.index("(")
             close_paren = query_str.rindex(")")
-            args_str = query_str[open_paren + 1 : close_paren].strip()
+            args_str = query_str[open_paren + 1: close_paren].strip()
 
             if method == "aggregate":
                 pipeline = json.loads(args_str)
