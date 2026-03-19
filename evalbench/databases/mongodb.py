@@ -60,7 +60,7 @@ class MongoDB(DB):
                 return [], f"Unsupported shell query format: {query_str}"
 
             collection = m.group(1)
-            method = m.group(2)
+            method = m.group(2) 
 
             # Extract args between the outermost ( and last )
             open_paren = query_str.index("(")
