@@ -647,6 +647,7 @@ class TestFirestoreMongoDBAPI:
         mock_pipeline_mod.Pipeline.return_value.raw_stage.return_value = mock_pipeline_mod.Pipeline.return_value
 
 
+
         # Mock result object with .data() method (PipelineResult)
         mock_result = MagicMock()
         mock_result.data.return_value = {"product_id": "p1", "price": 10.0}
