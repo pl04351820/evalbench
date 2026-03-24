@@ -1,6 +1,7 @@
 import unittest
 from scorers.setmatcher import SetMatcher
 
+
 class TestSetMatcher(unittest.TestCase):
 
     # --- Classic SQL Set Cases (Backwards Compatible) ---
@@ -47,7 +48,7 @@ class TestSetMatcher(unittest.TestCase):
         golden = [{"a": {"x": 1}}, {"a": {"x": 1}}]
         generated = [{"a": {"x": 1}}]
         score, err = matcher.compare(None, None, None, golden, None, None, None, generated, None, None)
-        self.assertEqual(score, 0) # Should fail if counts don't match for docs
+        self.assertEqual(score, 0)  # Should fail if counts don't match for docs
         self.assertIsNone(err)
 
     def test_doc_nested_list_preserve_order(self):
@@ -55,7 +56,7 @@ class TestSetMatcher(unittest.TestCase):
         golden = [{"a": [1, 2]}]
         generated = [{"a": [2, 1]}]
         score, err = matcher.compare(None, None, None, golden, None, None, None, generated, None, None)
-        self.assertEqual(score, 0) # Order inside lists matters for docs
+        self.assertEqual(score, 0)  # Order inside lists matters for docs
 
     def test_doc_nested_list_match(self):
         matcher = SetMatcher({})
@@ -63,6 +64,7 @@ class TestSetMatcher(unittest.TestCase):
         generated = [{"a": [1, 2]}]
         score, err = matcher.compare(None, None, None, golden, None, None, None, generated, None, None)
         self.assertEqual(score, 100)
+
 
 if __name__ == '__main__':
     unittest.main()
