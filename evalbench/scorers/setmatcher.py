@@ -23,7 +23,6 @@ class SetMatcher(comparator.Comparator):
     def __init__(self, config: dict):
         self.name = "set_match"
         self.config = config
-        self.firestore_data_model = config.get("firestore_data_model", False)
 
     def compare(
         self,
@@ -44,7 +43,17 @@ class SetMatcher(comparator.Comparator):
             return 0, None
         else:
             try:
-                if self.firestore_data_model:
+                def _is_document_structure(data):
+                    if not isinstance(data, list):
+                        return False
+                    for item in data:
+                        if isinstance(item, dict):
+                            for v in item.values():
+                                if isinstance(v, (dict, list)):
+                                    return True
+                    return False
+
+                if _is_document_structure(golden_execution_result) or _is_document_structure(generated_execution_result):
                     def _make_hashable(item):
                         if isinstance(item, list):
                             return tuple(_make_hashable(x) for x in item)
@@ -57,7 +66,7 @@ class SetMatcher(comparator.Comparator):
                     h2 = [_make_hashable(d) for d in generated_execution_result]
                     score = 100 if sorted(h1) == sorted(h2) else 0
                 else:
-                    # Current results are a list of Dict. Converting to Tuple for set comparison
+                    # SQL Model: flat primitives, ignore column names, remove duplicates
                     golden_execution_result_tuple = [
                         tuple(d.values()) for d in golden_execution_result
                     ]
