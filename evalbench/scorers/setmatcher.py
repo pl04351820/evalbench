@@ -23,6 +23,7 @@ class SetMatcher(comparator.Comparator):
     def __init__(self, config: dict):
         self.name = "set_match"
         self.config = config
+        self.firestore_data_model = config.get("firestore_data_model", False)
 
     def compare(
         self,
@@ -43,19 +44,32 @@ class SetMatcher(comparator.Comparator):
             return 0, None
         else:
             try:
-                # Current results are a list of Dict. Converting to Tuple for set comparison
-                golden_execution_result_tuple = [
-                    tuple(d.values()) for d in golden_execution_result
-                ]
-                generated_execution_result_tuple = [
-                    tuple(d.values()) for d in generated_execution_result
-                ]
-                score = (
-                    100
-                    if set(golden_execution_result_tuple)
-                    == set(generated_execution_result_tuple)
-                    else 0
-                )
+                if self.firestore_data_model:
+                    def _make_hashable(item):
+                        if isinstance(item, list):
+                            return tuple(_make_hashable(x) for x in item)
+                        elif isinstance(item, dict):
+                            return tuple(sorted((k, _make_hashable(v)) for k, v in item.items()))
+                        else:
+                            return item
+
+                    h1 = [_make_hashable(d) for d in golden_execution_result]
+                    h2 = [_make_hashable(d) for d in generated_execution_result]
+                    score = 100 if sorted(h1) == sorted(h2) else 0
+                else:
+                    # Current results are a list of Dict. Converting to Tuple for set comparison
+                    golden_execution_result_tuple = [
+                        tuple(d.values()) for d in golden_execution_result
+                    ]
+                    generated_execution_result_tuple = [
+                        tuple(d.values()) for d in generated_execution_result
+                    ]
+                    score = (
+                        100
+                        if set(golden_execution_result_tuple)
+                        == set(generated_execution_result_tuple)
+                        else 0
+                    )
             except Exception as e:
                 return 0, str(e)
 
