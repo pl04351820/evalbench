@@ -6,6 +6,15 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+# Manually enable debug mode to bypass XSRF check if needed
+# (e.g. when running in container behind a proxy)
+if os.environ.get("MESOP_XSRF_CHECK") == "false":
+    try:
+        import mesop.runtime as runtime
+        runtime.enable_debug_mode()
+    except Exception as e:
+        logging.error(f"Failed to enable debug mode: {e}")
+
 try:
     import dashboard
     import conversations
@@ -57,14 +66,13 @@ class State:
 @me.page(
     path="/",
     title="Evalbench",
+    security_policy=me.SecurityPolicy(
+        dangerously_disable_trusted_types=True,
+        cross_origin_opener_policy="same-origin",
+    ),
     stylesheets=[
         "data:",
-        "data:text/css;charset=utf-8,"
-        ".mdc-tooltip__surface%20%7B%0A"
-        "%20%20max-height%3A%20none%20%21important%3B%0A"
-        "%20%20max-width%3A%20none%20%21important%3B%0A"
-        "%20%20white-space%3A%20pre-wrap%20%21important%3B%0A"
-        "%7D",
+        "/static/custom.css",
     ],
 )
 def app():

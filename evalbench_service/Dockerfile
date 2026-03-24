@@ -27,13 +27,18 @@ RUN mkdir -p /home/evalbench && \
 
 COPY . evalbench
 WORKDIR evalbench
-RUN uv sync
+RUN uv pip install --system --break-system-packages -r requirements.txt
+RUN uv pip install --system --break-system-packages ./viewer
+RUN uv pip install --system --break-system-packages .
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN make proto -f ./Makefile
 RUN mkdir /tmp_session_files /tmp_sessions
 RUN cp /evalbench/evalbench_service/supervisord.conf /evalbench/supervisord.conf
+RUN cp /evalbench/evalbench_service/entrypoint.sh /evalbench/entrypoint.sh && chmod +x /evalbench/entrypoint.sh
 RUN chown -R 65532:65532 /evalbench /tmp /tmp_session_files /tmp_sessions /home/evalbench
 
-CMD ["/usr/bin/supervisord", "-c", "/evalbench/supervisord.conf"]
+USER 65532
+WORKDIR /evalbench
+CMD ["/evalbench/entrypoint.sh"]
 EXPOSE 50051 3000
