@@ -10,8 +10,8 @@ logging.basicConfig(level=logging.INFO)
 # (e.g. when running in container behind a proxy)
 if os.environ.get("MESOP_XSRF_CHECK") == "false":
     try:
-        import mesop.runtime as runtime
-        runtime.enable_debug_mode()
+        import mesop.runtime as mesop_runtime
+        mesop_runtime.enable_debug_mode()
     except Exception as e:
         logging.error(f"Failed to enable debug mode: {e}")
 
@@ -63,9 +63,42 @@ class State:
     conversation_index: int = 0
 
 
+def get_results_dir():
+    # Check multiple locations for results directory
+    results_dir_candidates = [
+        "/tmp_session_files/results",
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "results"),
+        os.path.join(os.getcwd(), "results"),
+    ]
+
+    for candidate in results_dir_candidates:
+        if os.path.exists(candidate) and os.path.isdir(candidate):
+            return candidate
+
+    return results_dir_candidates[1]  # Fallback to default
+
+
+def on_load(e: me.LoadEvent):
+    state = me.state(State)
+    results_dir = get_results_dir()
+    directories = []
+    if os.path.exists(results_dir):
+        # List directories only
+        directories = [
+            d
+            for d in os.listdir(results_dir)
+            if os.path.isdir(os.path.join(results_dir, d))
+        ]
+
+    job_id = me.query_params.get("job_id") or me.query_params.get("jobid")
+    if job_id and job_id in directories:
+        state.selected_directory = job_id
+
+
 @me.page(
     path="/",
     title="Evalbench",
+    on_load=on_load,
     security_policy=me.SecurityPolicy(
         dangerously_disable_trusted_types=True,
         cross_origin_opener_policy="same-origin",
@@ -77,22 +110,7 @@ class State:
 )
 def app():
     state = me.state(State)
-
-    # Check multiple locations for results directory
-    results_dir_candidates = [
-        "/tmp_session_files/results",
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), "results"),
-        os.path.join(os.getcwd(), "results"),
-    ]
-
-    results_dir = None
-    for candidate in results_dir_candidates:
-        if os.path.exists(candidate) and os.path.isdir(candidate):
-            results_dir = candidate
-            break
-
-    if results_dir is None:
-        results_dir = results_dir_candidates[1]  # Fallback to default
+    results_dir = get_results_dir()
 
     directories = []
     if os.path.exists(results_dir):
