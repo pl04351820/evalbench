@@ -36,6 +36,7 @@ RUN make proto -f ./Makefile
 RUN mkdir /tmp_session_files /tmp_sessions
 RUN cp /evalbench/evalbench_service/supervisord.conf /evalbench/supervisord.conf
 RUN cp /evalbench/evalbench_service/entrypoint.sh /evalbench/entrypoint.sh && chmod +x /evalbench/entrypoint.sh
+RUN chmod +x /evalbench/evalbench/run.sh
 RUN chown -R 65532:65532 /evalbench /tmp /tmp_session_files /tmp_sessions /home/evalbench
 
 USER 65532

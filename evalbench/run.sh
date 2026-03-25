@@ -10,7 +10,9 @@ ulimit -n 4096
 
 export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
-if command -v uv &> /dev/null; then
+if [[ "$UV_NO_SYNC" == "true" ]]; then
+  python evalbench/evalbench.py --experiment_config="$EVAL_CONFIG"
+elif command -v uv &> /dev/null; then
   uv run evalbench/evalbench.py --experiment_config="$EVAL_CONFIG"
 else
   python evalbench/evalbench.py --experiment_config="$EVAL_CONFIG"
