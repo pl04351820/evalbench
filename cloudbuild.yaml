@@ -10,7 +10,6 @@ steps:
   - 'EVAL_GCP_PROJECT_REGION=${_VAR_REGION}'
   - 'EVAL_CONFIG=${_VAR_EVAL_CONFIG}'
   - 'UV_CACHE_DIR=/tmp/uv-cache'
-  - 'UV_NO_SYNC=true'
 images:
 - 'us-central1-docker.pkg.dev/cloud-db-nl2sql/evalbench/eval_server:$COMMIT_SHA'
 substitutions:
