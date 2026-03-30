@@ -1,6 +1,7 @@
 import unittest
 from scorers.llmrater import LLMRater
 
+
 class TestLLMRater(unittest.TestCase):
     def test_take_n_uniques_with_document_model(self):
         # A typical Document model returned result containing nested lists of dictionaries
@@ -22,13 +23,13 @@ class TestLLMRater(unittest.TestCase):
         ]
         result = LLMRater.take_n_uniques(golden, 50)
         self.assertEqual(len(result), 2)
-        
+
     def test_take_n_uniques_limit(self):
         # Ensure it respects the 'n' limit
         golden = [{"id": i} for i in range(100)]
         result = LLMRater.take_n_uniques(golden, 50)
         self.assertEqual(len(result), 50)
-        
+
     def test_take_n_uniques_empty(self):
         # Edge case: empty list
         result = LLMRater.take_n_uniques([], 50)
