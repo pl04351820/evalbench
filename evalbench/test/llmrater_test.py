@@ -35,5 +35,6 @@ class TestLLMRater(unittest.TestCase):
         result = LLMRater.take_n_uniques([], 50)
         self.assertEqual(len(result), 0)
 
+
 if __name__ == '__main__':
     unittest.main()
